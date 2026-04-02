@@ -1,0 +1,2052 @@
+openapi: 3.0.3
+info:
+  title: {{.Title}}
+  version: {{.Version}}
+  description: {{.Description}}
+
+servers:
+  - url: {{.APIBaseURL}}
+    description: API Base URL
+
+paths:
+  # ==================== AUTENTICAÇÃO ====================
+  /health:
+    get:
+      summary: Health check do serviço
+      tags: [Autenticação]
+      responses:
+        "200":
+          description: Serviço saudável
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: retechauth-api
+                  version:
+                    type: string
+                    example: 1.0.0
+
+  /.well-known/jwks.json:
+    get:
+      summary: JSON Web Key Set (JWKS) para validação de tokens JWT
+      description: |
+        Endpoint padrão da indústria que expõe as chaves públicas RSA para validação de tokens JWT assinados com RS256.
+        Este endpoint é usado por serviços clientes (ex: `retechfin-api`) para validar a assinatura dos tokens JWT emitidos pelo AUTH.
+        
+        **Formato JWKS:**
+        - Retorna um objeto JSON com um array `keys` contendo chaves públicas RSA no formato JWK (JSON Web Key)
+        - Cada chave inclui `n` (modulus) e `e` (exponent) codificados em base64url
+        - O `kid` (Key ID) identifica unicamente cada chave, permitindo rotação sem downtime
+        
+        **Uso:**
+        - Serviços clientes podem consultar este endpoint para obter chaves públicas e validar tokens
+        - Recomenda-se cache de 1 hora (TTL) no cliente para reduzir requisições
+        - O endpoint é público e não requer autenticação
+        - Padrão da indústria: `/.well-known/jwks.json`
+        
+        **Rotação de Chaves:**
+        - Múltiplas chaves podem estar presentes no JWKS simultaneamente
+        - Durante a rotação, tokens antigos e novos são válidos (período de transição)
+        - O `kid` no header do JWT identifica qual chave usar para validação
+      tags: [Autenticação]
+      responses:
+        "200":
+          description: JWKS retornado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kty:
+                          type: string
+                          description: "Key Type: 'RSA' para chave assimétrica"
+                          example: "RSA"
+                        alg:
+                          type: string
+                          description: "Algoritmo de assinatura: RS256"
+                          example: "RS256"
+                        kid:
+                          type: string
+                          description: "Key ID: identificador único da chave (usado no header do JWT)"
+                          example: "key-1"
+                        use:
+                          type: string
+                          description: "Key Use: 'sig' para assinatura"
+                          example: "sig"
+                        n:
+                          type: string
+                          format: base64url
+                          description: "Modulus da chave pública RSA (base64url)"
+                          example: "0vx7agoebGcQSuuPiLJXZptN9nndrQmb..."
+                        e:
+                          type: string
+                          format: base64url
+                          description: "Exponent da chave pública RSA (normalmente 'AQAB' = 65537)"
+                          example: "AQAB"
+              example:
+                keys:
+                  - kty: "RSA"
+                    alg: "RS256"
+                    kid: "key-1"
+                    use: "sig"
+                    n: "0vx7agoebGcQSuuPiLJXZptN9nndrQmb..."
+                    e: "AQAB"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /account/authenticate:
+    post:
+      summary: Autentica um usuário (alias)
+      description: |
+        **Alias para `/v1/authenticate`**. Este endpoint fornece compatibilidade com clientes que usam o path `/account/authenticate`.
+        Funciona exatamente como `/v1/authenticate`.
+      tags: [Autenticação]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, application_code]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@theretech.local
+                password:
+                  type: string
+                  example: master123
+                application_code:
+                  type: string
+                  example: retech-fin-admin
+      responses:
+        "200":
+          description: Autenticação bem-sucedida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: "Token JWT assinado com RS256 (contém kid no header)"
+                  refresh_token:
+                    type: string
+                    description: "Refresh token JWT assinado com RS256"
+                  token_type:
+                    type: string
+                    example: Bearer
+                  expires_in:
+                    type: integer
+                    example: 86400
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                        format: email
+                      name:
+                        type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Usuário ou aplicação inativa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /authenticate:
+    post:
+      summary: Autentica um usuário
+      tags: [Autenticação]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, application_code]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@theretech.local
+                password:
+                  type: string
+                  example: master123
+                application_code:
+                  type: string
+                  example: retech-fin-admin
+      responses:
+        "200":
+          description: Autenticação bem-sucedida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: "Token JWT assinado com RS256. Contém 'kid' no header para identificação da chave."
+                  refresh_token:
+                    type: string
+                    description: "Refresh token JWT assinado com RS256 para renovação de tokens."
+                  token_type:
+                    type: string
+                    example: Bearer
+                  expires_in:
+                    type: integer
+                    example: 86400
+                    description: "Tempo de expiração em segundos"
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                        format: email
+                      name:
+                        type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Usuário ou aplicação inativa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "Forbidden"
+                message: "Usuário inativo"
+                code: 403
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /refresh:
+    post:
+      summary: Gera novo access token
+      tags: [Autenticação]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        "200":
+          description: Tokens renovados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  refresh_token:
+                    type: string
+                  token_type:
+                    type: string
+                    example: Bearer
+                  expires_in:
+                    type: integer
+                    example: 86400
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /me:
+    get:
+      summary: Retorna dados do usuário autenticado
+      tags: [Autenticação]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Informações do usuário com roles, permissions e abilities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                        format: email
+                      name:
+                        type: string
+                  application:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      name:
+                        type: string
+                      code:
+                        type: string
+                      description:
+                        type: string
+                  roles:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RoleDTO"
+                  permissions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PermissionDTO"
+                  abilities:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AbilityDTO"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ==================== USUÁRIOS ====================
+  /users:
+    get:
+      summary: Lista usuários da aplicação
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: email
+          in: query
+          schema:
+            type: string
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: active
+          in: query
+          schema:
+            type: boolean
+        - name: role
+          in: query
+          description: Filtrar por código da role
+          schema:
+            type: string
+            example: master
+      responses:
+        "200":
+          description: Lista de usuários com roles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserItem"
+                  total:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 20
+                  offset:
+                    type: integer
+                    example: 0
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Cria um novo usuário
+      description: |
+        Cria um novo usuário na aplicação.
+        
+        **tenant_id (Multitenancy):**
+        - O `tenant_id` do novo usuário é **automaticamente definido pelo AUTH** usando o `tenant_id` do JWT do criador
+        - O frontend **não deve enviar** `tenant_id` no request (se enviar, será ignorado)
+        - Se o criador tiver `tenant_id = "unidade-005"`, o novo usuário também terá `tenant_id = "unidade-005"`
+        - Se o criador não tiver `tenant_id` (usuário global), o novo usuário também não terá
+        
+        **Segurança:**
+        - Frontend não pode criar usuários em unidades diferentes da sua
+        - Usuários criados por um admin de unidade automaticamente pertencem àquela mesma unidade
+        
+        **Exceção (futuro):**
+        - Usuários com roles especiais (ex: `SISTEMA`, `SECRETARIA_MASTER`) podem criar usuários em outras unidades
+        - Neste caso, o backend aceita `tenant_id` no request MAS valida se o criador tem permissão
+        
+        Veja [docs/business-rules/auth/tenant-isolation.md](../docs/business-rules/auth/tenant-isolation.md) para mais detalhes.
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@theretech.local
+                password:
+                  type: string
+                  minLength: 6
+                  example: senha123
+                name:
+                  type: string
+                  example: João Silva
+                role_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  example: ["550e8400-e29b-41d4-a716-446655440002"]
+                tenant_id:
+                  type: string
+                  description: |
+                    ⚠️ **IGNORADO** para usuários comuns.
+                    O `tenant_id` é definido automaticamente pelo backend usando o `tenant_id` do JWT do criador.
+                    Este campo só será considerado para usuários com roles especiais (futuro).
+                  example: unidade-005
+      responses:
+        "201":
+          description: Usuário criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /users/{id}:
+    get:
+      summary: Retorna detalhes de um usuário
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Detalhes do usuário com roles, permissions e abilities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      summary: Atualiza o nome de um usuário
+      description: |
+        Atualiza apenas o nome do usuário. Para operações sensíveis, use os endpoints específicos:
+        - PUT /users/{id}/roles - para atualizar roles
+        - PATCH /users/{id}/status - para ativar/desativar
+        - POST /users/{id}/password/change - para alterar senha própria
+        - POST /users/{id}/password/reset - para resetar senha (admin/master)
+        
+        **Controle de Versão (Otimista):**
+        - O campo `version` é opcional. Se não fornecido, usa a versão atual do usuário.
+        - Se fornecido, o backend verifica se a versão ainda é a mesma antes de atualizar.
+        - Se a versão estiver desatualizada (outro processo modificou o usuário), retorna 409 Conflict.
+        - Após atualização bem-sucedida, a versão é incrementada automaticamente.
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  example: João Silva Atualizado
+                version:
+                  type: integer
+                  description: Versão esperada do usuário (opcional, para controle de concorrência)
+                  example: 5
+      responses:
+        "200":
+          description: Usuário atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Versão desatualizada - o usuário foi modificado por outro processo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Remove usuário da aplicação (soft delete)
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Usuário removido da aplicação
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /users/{id}/roles:
+    put:
+      summary: Atualiza as roles de um usuário
+      description: |
+        Atualiza as roles de um usuário. O backend calcula automaticamente o diff (adiciona/remove roles)
+        e aplica regras de negócio:
+        - Não é possível remover a role "master" de si mesmo
+        - Não é possível atribuir uma role superior à sua própria
+        - Valida se as roles pertencem à aplicação
+        
+        **Controle de Versão (Otimista):**
+        - O campo `version` é opcional. Se não fornecido, usa a versão atual do usuário.
+        - Se fornecido, o backend verifica se a versão ainda é a mesma antes de atualizar.
+        - Se a versão estiver desatualizada, retorna 409 Conflict.
+        - Após atualização bem-sucedida, a versão é incrementada automaticamente.
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role_ids]
+              properties:
+                role_ids:
+                  type: array
+                  description: Lista final de role IDs desejadas (o backend calcula o diff)
+                  items:
+                    type: string
+                    format: uuid
+                  example: ["550e8400-e29b-41d4-a716-446655440002", "550e8400-e29b-41d4-a716-446655440010"]
+                version:
+                  type: integer
+                  description: Versão esperada do usuário (opcional, para controle de concorrência)
+                  example: 5
+      responses:
+        "200":
+          description: Roles atualizadas com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateUserRolesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Versão desatualizada - o usuário foi modificado por outro processo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /users/{id}/status:
+    patch:
+      summary: Ativa ou desativa um usuário
+      description: |
+        Ativa ou desativa um usuário na aplicação. Apenas usuários com permissão adequada podem
+        alterar o status de outros usuários.
+        
+        **Controle de Versão (Otimista):**
+        - O campo `version` é opcional. Se não fornecido, usa a versão atual do usuário.
+        - Se fornecido, o backend verifica se a versão ainda é a mesma antes de atualizar.
+        - Se a versão estiver desatualizada, retorna 409 Conflict.
+        - Após atualização bem-sucedida, a versão é incrementada automaticamente.
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [active]
+              properties:
+                active:
+                  type: boolean
+                  description: true para ativar, false para desativar
+                  example: false
+                version:
+                  type: integer
+                  description: Versão esperada do usuário (opcional, para controle de concorrência)
+                  example: 5
+      responses:
+        "200":
+          description: Status atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Versão desatualizada - o usuário foi modificado por outro processo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /users/{id}/password/change:
+    post:
+      summary: Altera a senha do próprio usuário
+      description: |
+        Permite que um usuário altere sua própria senha. Requer a senha atual para validação.
+        Apenas o próprio usuário pode alterar sua senha através deste endpoint.
+        
+        **Controle de Versão (Otimista):**
+        - O campo `version` é opcional. Se não fornecido, usa a versão atual do usuário.
+        - Se fornecido, o backend verifica se a versão ainda é a mesma antes de atualizar.
+        - Se a versão estiver desatualizada, retorna 409 Conflict.
+        - Após atualização bem-sucedida, a versão é incrementada automaticamente.
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password:
+                  type: string
+                  description: Senha atual do usuário
+                  example: senhaAtual123
+                new_password:
+                  type: string
+                  minLength: 6
+                  description: Nova senha (mínimo 6 caracteres)
+                  example: novaSenha123
+                version:
+                  type: integer
+                  description: Versão esperada do usuário (opcional, para controle de concorrência)
+                  example: 5
+      responses:
+        "200":
+          description: Senha alterada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Senha alterada com sucesso
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Você só pode alterar sua própria senha
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Versão desatualizada - o usuário foi modificado por outro processo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /users/{id}/password/reset:
+    post:
+      summary: Reseta a senha de um usuário (admin/master)
+      description: |
+        Permite que um administrador ou usuário master resete a senha de outro usuário.
+        Não requer a senha atual, apenas a nova senha.
+        Apenas usuários com permissão adequada (admin/master) podem usar este endpoint.
+        
+        **Controle de Versão (Otimista):**
+        - O campo `version` é opcional. Se não fornecido, usa a versão atual do usuário.
+        - Se fornecido, o backend verifica se a versão ainda é a mesma antes de atualizar.
+        - Se a versão estiver desatualizada, retorna 409 Conflict.
+        - Após atualização bem-sucedida, a versão é incrementada automaticamente.
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [new_password]
+              properties:
+                new_password:
+                  type: string
+                  minLength: 6
+                  description: Nova senha (mínimo 6 caracteres)
+                  example: novaSenha123
+                version:
+                  type: integer
+                  description: Versão esperada do usuário (opcional, para controle de concorrência)
+                  example: 5
+      responses:
+        "200":
+          description: Senha resetada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Senha resetada com sucesso
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Apenas admin/master pode resetar senhas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Versão desatualizada - o usuário foi modificado por outro processo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ==================== APLICAÇÕES ====================
+  /applications:
+    get:
+      summary: Lista todas as aplicações
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de aplicações
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  applications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ApplicationItem"
+                  total:
+                    type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Cria uma nova aplicação
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, code]
+              properties:
+                name:
+                  type: string
+                  example: Retech Fin Admin
+                code:
+                  type: string
+                  example: retech-fin-admin
+                description:
+                  type: string
+                  example: Sistema de controle de acesso
+      responses:
+        "201":
+          description: Aplicação criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationItem"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /applications/sync:
+    post:
+      summary: Sincroniza manifest de uma aplicação (permissions e roles base)
+      description: |
+        Sincroniza o manifest de uma aplicação com o banco de dados de forma **totalmente idempotente**.
+        
+        **Idempotência:**
+        - ✅ Executar o mesmo manifest múltiplas vezes produz o **mesmo estado final**
+        - ✅ Pode ser executado após 2 horas, 2 dias ou 2 meses com segurança
+        - ✅ Recursos são identificados por chaves únicas (code, email) e atualizados ao invés de duplicados
+        
+        **Ordem de Processamento:**
+        1. Application (upsert por `code`)
+        2. Permissions (upsert por `application_id + code`)
+        3. Roles (upsert por `application_id + code`)
+        4. Role-Permissions (regenerado completamente baseado no manifest)
+        5. Users (upsert por `email`, apenas se fornecido no manifest)
+        
+        **Autenticação:**
+        - **JWT (uso normal)**: Use `Authorization: Bearer {token}` quando a aplicação já existe e você tem um usuário autenticado
+        - **HMAC (bootstrap)**: Use headers `X-Signature` e `X-Timestamp` com um secret compartilhado para criar aplicações iniciais sem autenticação JWT
+          - Requer `BOOTSTRAP_SECRET` configurado no servidor e `RETECHAUTH_BOOTSTRAP_SECRET` no CLI (mesmo valor)
+          - A assinatura HMAC valida a integridade do manifest e evita replay attacks (timestamp válido por 5 minutos)
+        
+        **Application:**
+        - Identificada por `code` (único globalmente)
+        - Criar: Se não existe → cria nova
+        - Atualizar: Se existe → atualiza `name` e `description`, preserva `active`
+        
+        **Permissions:**
+        - Identificadas por `application_id + code` (único por aplicação)
+        - Sempre definidas pela aplicação (backend), nunca pelo cliente
+        - Só podem ser criadas/atualizadas via sync (não via POST /permissions)
+        - Subject automaticamente inclui namespace da aplicação (ex: `admin.users`)
+        
+        **Roles:**
+        - Identificadas por `application_id + code` (único por aplicação)
+        - Roles com `system: true` são roles base do sistema (não editáveis via API)
+        - Roles customizadas (`system: false`) podem ser criadas via API
+        - Role-Permissions são **regenerados completamente** a cada sync (baseado no manifest atual)
+        
+        **Wildcards:**
+        - Suporta wildcards em permissions: qualquer prefixo seguido de `.*` expande para todas as permissions que começam com esse prefixo (ex: `admin.*`, `reports.*`, `core.users.*`)
+        
+        **Users (se fornecido no manifest):**
+        - Identificados por `email` (único globalmente)
+        - Criar: Se não existe → cria novo usuário com senha e `tenant_id` (se fornecido) do manifest
+        - Atualizar: Se existe → atualiza `name` e `active`, **NÃO atualiza senha nem tenant_id**
+        - ⚠️ **Segurança:** Senha e `tenant_id` de usuários existentes **nunca** são atualizados via sync
+        - **tenant_id no manifest:**
+          - Opcional: Pode ser fornecido para definir a unidade do usuário
+          - Uso típico: Primeiro usuário (bootstrap) que precisa ter `tenant_id` definido
+          - Se não fornecido: Usuário é criado sem `tenant_id` (usuário global)
+        - User-Roles são atualizadas baseadas nos códigos (`code`) fornecidos no manifest
+        
+        **Tratamento de Erros:**
+        - Erros em recursos individuais não interrompem o processamento do sync
+        - Sistema continua processando próximo recurso mesmo se um falhar
+        
+        **Documentação Completa:**
+        Veja [docs/business-rules/auth/manifest-sync.md](../docs/business-rules/auth/manifest-sync.md) para regras de negócio detalhadas.
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+        - hmacAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [application, permissions, roles]
+              properties:
+                application:
+                  type: object
+                  required: [code, name]
+                  properties:
+                    code:
+                      type: string
+                      example: retech-fin-admin
+                      description: "Qualquer identificador único de aplicação (ex: retech-billing, retech-core)"
+                    name:
+                      type: string
+                      example: Retech Fin Admin
+                      description: Qualquer nome amigável da aplicação
+                    description:
+                      type: string
+                      example: Painel administrativo Retech Fin
+                permissions:
+                  type: array
+                  items:
+                    type: object
+                    required: [code]
+                    properties:
+                      code:
+                        type: string
+                        example: admin.users.read
+                        description: "Qualquer formato de código de permission (ex: billing.orders.create, core.users.manage)"
+                      description:
+                        type: string
+                        example: Listar e visualizar usuários
+                      subject:
+                        type: string
+                        example: Device
+                        description: "Recurso alvo (mantido para compatibilidade CASL, opcional)"
+                      action:
+                        type: string
+                        example: read
+                        description: "Ação permitida (mantido para compatibilidade CASL, opcional)"
+                      conditions:
+                        type: string
+                        example: '{"userId": "${user.id}"}'
+                        description: Condições opcionais em formato JSON
+                roles:
+                  type: array
+                  items:
+                    type: object
+                    required: [code, name, system, permissions]
+                    properties:
+                      code:
+                        type: string
+                        example: RETECH_ADMIN
+                        description: "Qualquer código de role (ex: CRV_MANAGER, CORE_USER)"
+                      name:
+                        type: string
+                        example: Administrador Retech
+                        description: Qualquer nome amigável da role
+                      system:
+                        type: boolean
+                        example: true
+                        description: "true = role base (não editável via API), false = role customizada"
+                      description:
+                        type: string
+                        example: Acesso total ao painel administrativo
+                      permissions:
+                        type: array
+                        items:
+                          type: string
+                        example: ["admin.*"]
+                        description: "Lista de codes de permissions ou wildcards (funciona com qualquer prefixo, ex: [\"reports.*\", \"core.users.*\"])"
+      responses:
+        "200":
+          description: Manifest sincronizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  application:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      action:
+                        type: string
+                        enum: [created, updated]
+                      id:
+                        type: string
+                        format: uuid
+                  permissions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        action:
+                          type: string
+                          enum: [created, updated]
+                        id:
+                          type: string
+                          format: uuid
+                  roles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        action:
+                          type: string
+                          enum: [created, updated]
+                        id:
+                          type: string
+                          format: uuid
+                        permissions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              code:
+                                type: string
+                              action:
+                                type: string
+                                enum: [linked]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /applications/{id}:
+    get:
+      summary: Detalhes de uma aplicação
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Detalhes da aplicação
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationItem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      summary: Atualiza uma aplicação
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                active:
+                  type: boolean
+      responses:
+        "200":
+          description: Aplicação atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationItem"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Remove aplicação (soft delete)
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Aplicação removida
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ==================== ROLES ====================
+  /roles:
+    get:
+      summary: Lista roles da aplicação
+      description: |
+        Lista todas as roles da aplicação (identificada pelo token JWT).
+        
+        **Parâmetros de Query:**
+        - `active` (opcional): Filtra por status da role
+          - `active=true` → apenas roles ativas
+          - `active=false` → apenas roles inativas
+          - Sem parâmetro → todas (ativas e inativas)
+        - `include_permissions` (opcional): Se `true`, inclui lista de permissions em cada role
+          - `include_permissions=true` → inclui campo `permissions` em cada role
+          - Sem parâmetro ou `false` → apenas `permission_count`
+        
+        **Aplicação:**
+        - A aplicação é identificada automaticamente pelo token JWT (`application_id` no token)
+        - Não é necessário enviar `application_code` como parâmetro
+      tags: [Roles]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: active
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: "Filtra por status: true=ativas, false=inativas, sem parâmetro=todas"
+          example: true
+        - name: include_permissions
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: "Se true, inclui lista de permissions em cada role"
+          example: false
+      responses:
+        "200":
+          description: Lista de roles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roles:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RoleItem"
+                  total:
+                    type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Cria uma nova role
+      tags: [Roles]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+              schema:
+              type: object
+              required: [name, code, system]
+              properties:
+                name:
+                  type: string
+                  example: Operador
+                code:
+                  type: string
+                  description: |
+                    Código único da role (slug-like).
+                    
+                    **Formato:**
+                    - Apenas letras minúsculas, números, hífens (-), underscores (_) e pontos (.)
+                    - Sem espaços, caracteres especiais, acentos ou maiúsculas
+                    - Mínimo 2 caracteres, máximo 100 caracteres
+                    - Não pode começar ou terminar com hífen, underscore ou ponto
+                    - Não pode conter sequências duplicadas (--, __, ..)
+                    
+                    **Exemplos válidos:** `master`, `admin`, `admin.user`, `ops-manager`
+                    
+                    **Importante:** O code não pode ser alterado após a criação da role.
+                  pattern: "^[a-z0-9._-]+$"
+                  minLength: 2
+                  maxLength: 100
+                  example: operator
+                description:
+                  type: string
+                  example: Gerencia usuários
+                system:
+                  type: boolean
+                  description: "true = role base do sistema (não editável), false = role customizada"
+                  example: false
+                permission_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: "IDs de permissões para vincular à role na criação (opcional). Se fornecido, as permissões serão vinculadas imediatamente."
+                  example: ["550e8400-e29b-41d4-a716-446655440000", "550e8400-e29b-41d4-a716-446655440001"]
+      responses:
+        "201":
+          description: Role criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleItem"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /roles/{id}:
+    get:
+      summary: Detalhes de uma role (com permissions)
+      tags: [Roles]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Detalhes da role com lista de permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetRoleResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      summary: Atualiza uma role
+      description: |
+        **Restrição:** Roles com `system: true` (roles base) **não podem** ser editadas via API.
+        Roles base só podem ser atualizadas via sync de manifest (`POST /applications/sync`).
+        
+        Use este endpoint apenas para roles customizadas (`system: false`).
+        
+        **Permissões:** Campo opcional `permission_ids` permite atualizar as permissões vinculadas à role.
+        Se fornecido, substitui todas as permissões atuais. Use array vazio `[]` para remover todas as permissões.
+      tags: [Roles]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                active:
+                  type: boolean
+                permission_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: "IDs de permissões para atualizar vínculos (opcional). Se fornecido, substitui todas as permissões atuais. Use array vazio [] para remover todas as permissões."
+                  example: ["550e8400-e29b-41d4-a716-446655440000", "550e8400-e29b-41d4-a716-446655440001"]
+      responses:
+        "200":
+          description: Role atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleItem"
+        "400":
+          description: "Erro ao atualizar (ex: tentando editar role base)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                systemRole:
+                  summary: Tentativa de editar role base
+                  value:
+                    error: "não é possível editar uma role base do sistema (system: true)"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Remove role (soft delete)
+      description: |
+        **Restrição:** Roles com `system: true` (roles base) **não podem** ser deletadas via API.
+        Roles base só podem ser atualizadas via sync de manifest (`POST /applications/sync`).
+        
+        **Validação:** Role customizada (`system: false`) só pode ser deletada se **não estiver vinculada a usuários ativos**.
+        Se houver usuários ativos com esta role, retorna erro informando quais usuários possuem a role.
+        
+        **Permissões:** Ao deletar uma role (soft delete), todas as permissões vinculadas (`role_permissions`) são automaticamente desvinculadas.
+        
+        Use este endpoint apenas para roles customizadas (`system: false`).
+      tags: [Roles]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Role removida
+        "400":
+          description: "Erro ao deletar (ex: tentando deletar role base ou role vinculada a usuários ativos)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                systemRole:
+                  summary: Tentativa de deletar role base
+                  value:
+                    error: "não é possível deletar uma role base do sistema (system: true)"
+                activeUsers:
+                  summary: Role vinculada a usuários ativos
+                  value:
+                    error: "não é possível deletar a role pois ela está vinculada a 2 usuário(s) ativo(s): [user1@example.com, user2@example.com]"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /roles/{id}/permissions:
+    put:
+      summary: Atualiza permissões de uma role
+      description: |
+        **Restrição:** Roles com `system: true` (roles base) **não podem** ter suas permissões atualizadas via API.
+        Roles base só podem ser atualizadas via sync de manifest (`POST /applications/sync`).
+        
+        Use este endpoint apenas para roles customizadas (`system: false`).
+        
+        **Suporta wildcards:** Permite usar wildcards em `permission_codes` (ex: `["admin.*"]`).
+        
+        **⚠️ Revogação de Tokens:**
+        - Tokens JWT são stateless e não há blacklist implementada.
+        - Tokens ativos continuarão válidos até expirarem naturalmente.
+        - Para revogação imediata, o frontend deve invalidar tokens localmente após esta operação.
+      tags: [Roles]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permission_codes]
+              properties:
+                permission_codes:
+                  type: array
+                  items:
+                    type: string
+                  description: "Lista de codes de permissions ou wildcards (ex: [\"admin.users.read\", \"admin.*\"])"
+                  example: ["admin.users.read", "admin.users.write"]
+      responses:
+        "200":
+          description: Permissões atualizadas com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  role_id:
+                    type: string
+                    format: uuid
+                  permissions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PermissionDTO"
+        "400":
+          description: "Erro ao atualizar (ex: tentando editar role base ou role não encontrada)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                systemRole:
+                  summary: Tentativa de editar permissões de role base
+                  value:
+                    error: "não é possível atualizar permissões de uma role base do sistema (system: true)"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ==================== PERMISSIONS ====================
+  /permissions:
+    get:
+      summary: Lista permissions da aplicação
+      tags: [Permissions]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de permissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  permissions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PermissionItem"
+                  total:
+                    type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Cria uma nova permission
+      description: |
+        **⚠️ DESABILITADO:** Permissions **não podem** ser criadas via API.
+        
+        Permissions devem ser criadas **apenas via sync de manifest** (`POST /applications/sync`).
+        
+        **Motivo:** Permissions são sempre definidas pela aplicação (backend) e devem refletir as rotas/módulos reais do sistema. Permitir criação manual quebraria a segurança e a sincronização com o backend.
+        
+        Veja [docs/manifest-sync.md](../docs/manifest-sync.md) para mais detalhes.
+      tags: [Permissions]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, action]
+              properties:
+                subject:
+                  type: string
+                  example: Device
+                action:
+                  type: string
+                  example: create
+                description:
+                  type: string
+                  example: Gerenciar usuários
+                conditions:
+                  type: string
+                  example: '{"userId": "${user.id}"}'
+      responses:
+        "400":
+          description: Permissions devem ser criadas apenas via sync de manifest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                disabled:
+                  summary: Tentativa de criar permission via API
+                  value:
+                    error: "permissions devem ser criadas apenas via sync de manifest (POST /applications/sync). Permissions são sempre definidas pela aplicação, nunca pelo cliente"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /permissions/{id}:
+    put:
+      summary: Atualiza uma permission
+      tags: [Permissions]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                conditions:
+                  type: string
+                active:
+                  type: boolean
+      responses:
+        "200":
+          description: Permission atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PermissionItem"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Remove permission (soft delete)
+      tags: [Permissions]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Permission removida
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Token JWT obtido através do endpoint `/v1/authenticate` ou `/v1/account/authenticate`.
+        Tokens são assinados com **RS256** (RSA) e podem ser validados usando chaves públicas expostas no endpoint `/.well-known/jwks.json`.
+        
+        **Header do Token:**
+        ```json
+        {
+          "alg": "RS256",
+          "typ": "JWT",
+          "kid": "key-1"  // Key ID (permite rotação de chaves)
+        }
+        ```
+        
+        **Estrutura do Token (Claims/Payload):**
+        ```json
+        {
+          "sub": "uuid-do-usuario",      // Subject (padrão JWT)
+          "user_id": "uuid-do-usuario",  // Mantido para compatibilidade
+          "email": "user@example.com",
+          "application_id": "uuid",
+          "tenant_id": "unidade-005",     // Opcional: apenas se o usuário pertence a uma unidade
+          "roles": ["master", "core_admin"], // Opcional: array de role codes para autorização e multi-tenancy
+          "exp": 1234567890,              // Data de expiração
+          "iat": 1234567890,              // Data de emissão
+          "nbf": 1234567890               // Not before
+        }
+        ```
+        
+        **Validação:**
+        - **Algoritmo:** RS256 (RSA com SHA-256)
+        - **Chave pública:** Obtida via `GET /.well-known/jwks.json`
+        - **Key ID:** O `kid` no header identifica qual chave usar (permite rotação sem downtime)
+        - **Cache recomendado:** Clientes devem cachear JWKS por 1 hora (TTL)
+        
+        **Observações:**
+        - `sub`: ID do usuário como string (padrão JWT)
+        - `user_id`: ID do usuário como UUID (mantido para compatibilidade)
+        - `application_id`: Sempre presente (obrigatório)
+        - `tenant_id`: Opcional, presente apenas se o usuário tem um `tenant_id` definido no banco
+        - `roles`: Opcional, array de role codes (ex: `["master", "core_admin"]`) para autorização e multi-tenancy hierárquico
+        - O `tenant_id` é definido pelo sistema de gestão de usuários/onboarding, o AUTH apenas carrega do banco e inclui no token
+        - As `roles` são buscadas do banco durante autenticação e incluídas no JWT para permitir autorização sem chamada extra
+        - Para acessar o `tenant_id` no backend, use `middleware.GetTenantID(ctx)`
+        - Para acessar as `roles` no backend, extraia do JWT (formato array JSON)
+        
+        **Documentação relacionada:**
+        - [docs/business-rules/auth/tenant-isolation.md](../docs/business-rules/auth/tenant-isolation.md)
+        - [docs/fluxo-autenticacao.md](../docs/fluxo-autenticacao.md)
+    hmacAuth:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: |
+        Autenticação HMAC para bootstrap inicial (sem aplicação/usuário ainda).
+        Requer headers `X-Signature` (assinatura HMAC-SHA256) e `X-Timestamp` (Unix timestamp).
+        O secret compartilhado deve ser configurado como `BOOTSTRAP_SECRET` no servidor e `RETECHAUTH_BOOTSTRAP_SECRET` no CLI.
+  
+  schemas:
+    # ==================== USER SCHEMAS ====================
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        active:
+          type: boolean
+        version:
+          type: integer
+          description: Versão atual do usuário (usado para controle de concorrência)
+          example: 6
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    UserItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        active:
+          type: boolean
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoleDTO"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    GetUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        active:
+          type: boolean
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoleDTO"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionDTO"
+        abilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/AbilityDTO"
+        version:
+          type: integer
+          description: Versão atual do usuário (usado para controle de concorrência)
+          example: 5
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    # ==================== APPLICATION SCHEMAS ====================
+    ApplicationItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    # ==================== ROLE SCHEMAS ====================
+    RoleItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+        system:
+          type: boolean
+          description: "true = role base do sistema (não editável), false = role customizada"
+        active:
+          type: boolean
+        permission_count:
+          type: integer
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionDTO"
+          description: "Lista de permissions (incluído apenas quando include_permissions=true)"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    GetRoleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+        system:
+          type: boolean
+          description: "true = role base do sistema (não editável), false = role customizada"
+        active:
+          type: boolean
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionDTO"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    RoleDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+    
+    # ==================== PERMISSION SCHEMAS ====================
+    PermissionItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        subject:
+          type: string
+        action:
+          type: string
+        description:
+          type: string
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    PermissionDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          description: "Código único da permissão (ex: admin.users.view, Menu:Dashboard)"
+          example: "admin.users.view"
+        subject:
+          type: string
+          description: |
+            Recurso (namespace + entidade) para CASL.js.
+            **Formato:** `{appPrefix}.{resource}` (ex: `admin.users`)
+            **Namespacing:** Evita conflitos em sistemas multi-aplicação.
+            **Padrão:** Alinhado com AWS IAM, Google Cloud, Azure.
+          example: "admin.users"
+        action:
+          type: string
+          description: |
+            Ação (verb) para CASL.js.
+            **Valores válidos:** `read`, `create`, `update`, `delete`, `manage`, `view`
+          example: "view"
+        conditions:
+          type: string
+          nullable: true
+        description:
+          type: string
+    
+    # ==================== ABILITY SCHEMA ====================
+    AbilityDTO:
+      type: object
+      properties:
+        action:
+          type: string
+        subject:
+          type: string
+        conditions:
+          type: object
+          additionalProperties: true
+          nullable: true
+    
+    UpdateUserRolesResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoleDTO"
+        version:
+          type: integer
+          description: Nova versão após atualização
+          example: 6
+        updated_at:
+          type: string
+          format: date-time
+    
+    # ==================== ERROR RESPONSE ====================
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        code:
+          type: integer
+  
+  responses:
+    BadRequest:
+      description: Requisição inválida
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "Bad Request"
+            message: "Dados inválidos"
+            code: 400
+    
+    Unauthorized:
+      description: Não autenticado ou token inválido
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "Unauthorized"
+            message: "Token de autenticação não fornecido"
+            code: 401
+    
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "Not Found"
+            message: "Recurso não encontrado"
+            code: 404
+    
+    InternalServerError:
+      description: Erro interno do servidor
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "Internal Server Error"
+            message: "Erro ao processar requisição"
+            code: 500

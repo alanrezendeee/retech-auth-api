@@ -1,0 +1,1244 @@
+openapi: 3.0.3
+info:
+  title: {{.Title}}
+  version: {{.Version}}
+  description: {{.Description}}
+
+servers:
+  - url: {{.APIBaseURL}}
+    description: API Base URL
+
+paths:
+  # ==================== AUTENTICAÇÃO ====================
+  /health:
+    get:
+      summary: Health check do serviço
+      tags: [Autenticação]
+      responses:
+        "200":
+          description: Serviço saudável
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: retechauth-api
+                  version:
+                    type: string
+                    example: 1.0.0
+
+  /authenticate:
+    post:
+      summary: Autentica um usuário
+      tags: [Autenticação]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, application_code]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@theretech.local
+                password:
+                  type: string
+                  example: master123
+                application_code:
+                  type: string
+                  example: retech-fin-admin
+      responses:
+        "200":
+          description: Autenticação bem-sucedida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  refresh_token:
+                    type: string
+                  token_type:
+                    type: string
+                    example: Bearer
+                  expires_in:
+                    type: integer
+                    example: 86400
+        "401":
+          description: Credenciais inválidas
+
+  /refresh:
+    post:
+      summary: Gera novo access token
+      tags: [Autenticação]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        "200":
+          description: Tokens renovados
+        "401":
+          description: Refresh token inválido
+
+  /me:
+    get:
+      summary: Retorna dados do usuário autenticado
+      tags: [Autenticação]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Informações do usuário com roles, permissions e abilities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                      name:
+                        type: string
+                  application:
+                    type: object
+                  roles:
+                    type: array
+                    items:
+                      type: object
+                  permissions:
+                    type: array
+                    items:
+                      type: object
+                  abilities:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        action:
+                          type: string
+                          example: manage
+                        subject:
+                          type: string
+                          example: all
+
+  # ==================== USUÁRIOS ====================
+  /users:
+    get:
+      summary: Lista usuários da aplicação
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: email
+          in: query
+          schema:
+            type: string
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: active
+          in: query
+          schema:
+            type: boolean
+        - name: role
+          in: query
+          description: Filtrar por código da role
+          schema:
+            type: string
+            example: master
+      responses:
+        "200":
+          description: Lista de usuários com roles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        email:
+                          type: string
+                        name:
+                          type: string
+                        active:
+                          type: boolean
+                        roles:
+                          type: array
+                          items:
+                            type: object
+                        created_at:
+                          type: string
+                          format: date-time
+                        updated_at:
+                          type: string
+                          format: date-time
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+    post:
+      summary: Cria um novo usuário
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@theretech.local
+                password:
+                  type: string
+                  minLength: 6
+                  example: senha123
+                name:
+                  type: string
+                  example: João Silva
+                role_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        "201":
+          description: Usuário criado
+
+  /users/{id}:
+    get:
+      summary: Retorna detalhes de um usuário
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Detalhes do usuário com roles, permissions e abilities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  email:
+                    type: string
+                  name:
+                    type: string
+                  active:
+                    type: boolean
+                  roles:
+                    type: array
+                    items:
+                      type: object
+                  permissions:
+                    type: array
+                    items:
+                      type: object
+                  abilities:
+                    type: array
+                    items:
+                      type: object
+                  version:
+                    type: integer
+                    description: Versão atual do usuário (usado para controle de concorrência)
+                    example: 5
+                  created_at:
+                    type: string
+                    format: date-time
+                  updated_at:
+                    type: string
+                    format: date-time
+    put:
+      summary: Atualiza o nome de um usuário
+      description: |
+        Atualiza apenas o nome do usuário. Para operações sensíveis, use os endpoints específicos:
+        - PUT /users/{id}/roles - para atualizar roles
+        - PATCH /users/{id}/status - para ativar/desativar
+        - POST /users/{id}/password/change - para alterar senha própria
+        - POST /users/{id}/password/reset - para resetar senha (admin/master)
+        
+        **Controle de Versão (Otimista):**
+        - O campo `version` é opcional. Se não fornecido, usa a versão atual do usuário.
+        - Se fornecido, o backend verifica se a versão ainda é a mesma antes de atualizar.
+        - Se a versão estiver desatualizada (outro processo modificou o usuário), retorna 409 Conflict.
+        - Após atualização bem-sucedida, a versão é incrementada automaticamente.
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  example: João Silva Atualizado
+                version:
+                  type: integer
+                  description: Versão esperada do usuário (opcional, para controle de concorrência)
+                  example: 5
+      responses:
+        "200":
+          description: Usuário atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  email:
+                    type: string
+                  name:
+                    type: string
+                  active:
+                    type: boolean
+                  version:
+                    type: integer
+                    description: Nova versão após atualização
+                    example: 6
+                  created_at:
+                    type: string
+                    format: date-time
+                  updated_at:
+                    type: string
+                    format: date-time
+        "409":
+          description: Versão desatualizada - o usuário foi modificado por outro processo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Remove usuário da aplicação (soft delete)
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Usuário removido da aplicação
+
+  /users/{id}/roles:
+    put:
+      summary: Atualiza as roles de um usuário
+      description: |
+        Atualiza as roles de um usuário. O backend calcula automaticamente o diff (adiciona/remove roles)
+        e aplica regras de negócio:
+        - Não é possível remover a role "master" de si mesmo
+        - Não é possível atribuir uma role superior à sua própria
+        - Valida se as roles pertencem à aplicação
+        
+        **Controle de Versão (Otimista):**
+        - O campo `version` é opcional. Se não fornecido, usa a versão atual do usuário.
+        - Se fornecido, o backend verifica se a versão ainda é a mesma antes de atualizar.
+        - Se a versão estiver desatualizada, retorna 409 Conflict.
+        - Após atualização bem-sucedida, a versão é incrementada automaticamente.
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role_ids]
+              properties:
+                role_ids:
+                  type: array
+                  description: Lista final de role IDs desejadas (o backend calcula o diff)
+                  items:
+                    type: string
+                    format: uuid
+                  example: ["550e8400-e29b-41d4-a716-446655440002", "550e8400-e29b-41d4-a716-446655440010"]
+                version:
+                  type: integer
+                  description: Versão esperada do usuário (opcional, para controle de concorrência)
+                  example: 5
+      responses:
+        "200":
+          description: Roles atualizadas com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  roles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        name:
+                          type: string
+                        code:
+                          type: string
+                        description:
+                          type: string
+                  version:
+                    type: integer
+                    description: Nova versão após atualização
+                    example: 6
+                  updated_at:
+                    type: string
+                    format: date-time
+        "400":
+          description: Erro de validação (role não encontrada, não pertence à aplicação, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Versão desatualizada - o usuário foi modificado por outro processo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/status:
+    patch:
+      summary: Ativa ou desativa um usuário
+      description: |
+        Ativa ou desativa um usuário na aplicação. Apenas usuários com permissão adequada podem
+        alterar o status de outros usuários.
+        
+        **Controle de Versão (Otimista):**
+        - O campo `version` é opcional. Se não fornecido, usa a versão atual do usuário.
+        - Se fornecido, o backend verifica se a versão ainda é a mesma antes de atualizar.
+        - Se a versão estiver desatualizada, retorna 409 Conflict.
+        - Após atualização bem-sucedida, a versão é incrementada automaticamente.
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [active]
+              properties:
+                active:
+                  type: boolean
+                  description: true para ativar, false para desativar
+                  example: false
+                version:
+                  type: integer
+                  description: Versão esperada do usuário (opcional, para controle de concorrência)
+                  example: 5
+      responses:
+        "200":
+          description: Status atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  email:
+                    type: string
+                  name:
+                    type: string
+                  active:
+                    type: boolean
+                  version:
+                    type: integer
+                    description: Nova versão após atualização
+                    example: 6
+                  created_at:
+                    type: string
+                    format: date-time
+                  updated_at:
+                    type: string
+                    format: date-time
+        "409":
+          description: Versão desatualizada - o usuário foi modificado por outro processo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/password/change:
+    post:
+      summary: Altera a senha do próprio usuário
+      description: |
+        Permite que um usuário altere sua própria senha. Requer a senha atual para validação.
+        Apenas o próprio usuário pode alterar sua senha através deste endpoint.
+        
+        **Controle de Versão (Otimista):**
+        - O campo `version` é opcional. Se não fornecido, usa a versão atual do usuário.
+        - Se fornecido, o backend verifica se a versão ainda é a mesma antes de atualizar.
+        - Se a versão estiver desatualizada, retorna 409 Conflict.
+        - Após atualização bem-sucedida, a versão é incrementada automaticamente.
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password:
+                  type: string
+                  description: Senha atual do usuário
+                  example: senhaAtual123
+                new_password:
+                  type: string
+                  minLength: 6
+                  description: Nova senha (mínimo 6 caracteres)
+                  example: novaSenha123
+                version:
+                  type: integer
+                  description: Versão esperada do usuário (opcional, para controle de concorrência)
+                  example: 5
+      responses:
+        "200":
+          description: Senha alterada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Senha alterada com sucesso
+        "400":
+          description: Senha atual incorreta ou nova senha inválida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Você só pode alterar sua própria senha
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Versão desatualizada - o usuário foi modificado por outro processo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/password/reset:
+    post:
+      summary: Reseta a senha de um usuário (admin/master)
+      description: |
+        Permite que um administrador ou usuário master resete a senha de outro usuário.
+        Não requer a senha atual, apenas a nova senha.
+        Apenas usuários com permissão adequada (admin/master) podem usar este endpoint.
+        
+        **Controle de Versão (Otimista):**
+        - O campo `version` é opcional. Se não fornecido, usa a versão atual do usuário.
+        - Se fornecido, o backend verifica se a versão ainda é a mesma antes de atualizar.
+        - Se a versão estiver desatualizada, retorna 409 Conflict.
+        - Após atualização bem-sucedida, a versão é incrementada automaticamente.
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [new_password]
+              properties:
+                new_password:
+                  type: string
+                  minLength: 6
+                  description: Nova senha (mínimo 6 caracteres)
+                  example: novaSenha123
+                version:
+                  type: integer
+                  description: Versão esperada do usuário (opcional, para controle de concorrência)
+                  example: 5
+      responses:
+        "200":
+          description: Senha resetada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Senha resetada com sucesso
+        "400":
+          description: Nova senha inválida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Apenas admin/master pode resetar senhas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Versão desatualizada - o usuário foi modificado por outro processo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ==================== APLICAÇÕES ====================
+  /applications:
+    get:
+      summary: Lista todas as aplicações
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de aplicações
+    post:
+      summary: Cria uma nova aplicação
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, code]
+              properties:
+                name:
+                  type: string
+                  example: Retech Fin Admin
+                code:
+                  type: string
+                  example: retech-fin-admin
+                description:
+                  type: string
+                  example: Sistema de controle de acesso
+      responses:
+        "201":
+          description: Aplicação criada
+
+  /applications/sync:
+    post:
+      summary: Sincroniza manifest de uma aplicação (permissions e roles base)
+      description: |
+        Sincroniza o manifest de uma aplicação com o banco de dados de forma idempotente.
+        
+        **Autenticação:**
+        - **JWT (uso normal)**: Use `Authorization: Bearer {token}` quando a aplicação já existe e você tem um usuário autenticado
+        - **HMAC (bootstrap)**: Use headers `X-Signature` e `X-Timestamp` com um secret compartilhado para criar aplicações iniciais sem autenticação JWT
+          - Requer `BOOTSTRAP_SECRET` configurado no servidor e `RETECHAUTH_BOOTSTRAP_SECRET` no CLI (mesmo valor)
+          - A assinatura HMAC valida a integridade do manifest e evita replay attacks (timestamp válido por 5 minutos)
+        
+        **Permissões:**
+        - Permissions são sempre definidas pela aplicação (backend), nunca pelo cliente
+        - Permissions só podem ser criadas/atualizadas via sync (não via POST /permissions)
+        
+        **Roles Base:**
+        - Roles com `system: true` são roles base do sistema (não editáveis via API)
+        - Roles customizadas (`system: false`) podem ser criadas via API
+        
+        **Wildcards:**
+        - Suporta wildcards em permissions: qualquer prefixo seguido de `.*` expande para todas as permissions que começam com esse prefixo (ex: `admin.*`, `reports.*`, `core.users.*`)
+        
+        **Idempotência:**
+        - Executar o sync múltiplas vezes com o mesmo manifest resulta no mesmo estado final
+        
+        Veja [docs/manifest-sync.md](../docs/manifest-sync.md) para mais detalhes.
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+        - hmacAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [application, permissions, roles]
+              properties:
+                application:
+                  type: object
+                  required: [code, name]
+                  properties:
+                      code:
+                        type: string
+                        example: retech-fin-admin
+                        description: Qualquer identificador único de aplicação (ex: retech-billing, retech-core)
+                    name:
+                      type: string
+                      example: Retech Fin Admin
+                      description: Qualquer nome amigável da aplicação
+                    description:
+                      type: string
+                      example: Painel administrativo Retech Fin
+                permissions:
+                  type: array
+                  items:
+                    type: object
+                    required: [code]
+                    properties:
+                      code:
+                        type: string
+                        example: admin.users.read
+                        description: Qualquer formato de código de permission (ex: billing.orders.create, core.users.manage)
+                      description:
+                        type: string
+                        example: Listar e visualizar usuários
+                      subject:
+                        type: string
+                        example: Device
+                        description: Recurso alvo (mantido para compatibilidade CASL, opcional)
+                      action:
+                        type: string
+                        example: read
+                        description: Ação permitida (mantido para compatibilidade CASL, opcional)
+                      conditions:
+                        type: string
+                        example: '{"userId": "${user.id}"}'
+                        description: Condições opcionais em formato JSON
+                roles:
+                  type: array
+                  items:
+                    type: object
+                    required: [code, name, system, permissions]
+                    properties:
+                      code:
+                        type: string
+                        example: RETECH_ADMIN
+                        description: Qualquer código de role (ex: CRV_MANAGER, CORE_USER)
+                      name:
+                        type: string
+                        example: Administrador Retech
+                        description: Qualquer nome amigável da role
+                      system:
+                        type: boolean
+                        example: true
+                        description: true = role base (não editável via API), false = role customizada
+                      description:
+                        type: string
+                        example: Acesso total ao painel administrativo
+                      permissions:
+                        type: array
+                        items:
+                          type: string
+                        example: ["admin.*"]
+                        description: Lista de codes de permissions ou wildcards (funciona com qualquer prefixo, ex: ["reports.*", "core.users.*"])
+            examples:
+              retech_fin_admin:
+                summary: Exemplo para retech-fin-admin
+                value:
+                  application:
+                    code: retech-fin-admin
+                    name: Retech Fin Admin
+                    description: Painel administrativo Retech Fin
+                  permissions:
+                    - code: admin.users.read
+                      description: Listar e visualizar usuários
+                    - code: admin.users.write
+                      description: Gerenciar usuários
+                  roles:
+                    - code: RETECH_ADMIN
+                      name: Administrador Retech
+                      system: true
+                      description: Acesso total ao painel administrativo
+                      permissions: ["admin.*"]
+      responses:
+        "200":
+          description: Manifest sincronizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  application:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      action:
+                        type: string
+                        enum: [created, updated]
+                      id:
+                        type: string
+                        format: uuid
+                  permissions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        action:
+                          type: string
+                          enum: [created, updated]
+                        id:
+                          type: string
+                          format: uuid
+                  roles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        action:
+                          type: string
+                          enum: [created, updated]
+                        id:
+                          type: string
+                          format: uuid
+                        permissions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              code:
+                                type: string
+                              action:
+                                type: string
+                                enum: [linked]
+        "400":
+          description: Dados inválidos ou erro no sync
+        "401":
+          description: Não autorizado
+
+  /applications/{id}:
+    get:
+      summary: Detalhes de uma aplicação
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Detalhes da aplicação
+    put:
+      summary: Atualiza uma aplicação
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                active:
+                  type: boolean
+      responses:
+        "200":
+          description: Aplicação atualizada
+    delete:
+      summary: Remove aplicação (soft delete)
+      tags: [Aplicações]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Aplicação removida
+
+  # ==================== ROLES ====================
+  /roles:
+    get:
+      summary: Lista roles da aplicação
+      tags: [Roles]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de roles
+    post:
+      summary: Cria uma nova role
+      tags: [Roles]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, code]
+              properties:
+                name:
+                  type: string
+                  example: Operador
+                code:
+                  type: string
+                  example: operator
+                description:
+                  type: string
+                  example: Gerencia usuários
+      responses:
+        "201":
+          description: Role criada
+
+  /roles/{id}:
+    get:
+      summary: Detalhes de uma role (com permissions)
+      tags: [Roles]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Detalhes da role com lista de permissions
+    put:
+      summary: Atualiza uma role
+      description: |
+        **Restrição:** Roles com `system: true` (roles base) **não podem** ser editadas via API.
+        Roles base só podem ser atualizadas via sync de manifest (`POST /applications/sync`).
+        
+        Use este endpoint apenas para roles customizadas (`system: false`).
+      tags: [Roles]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                active:
+                  type: boolean
+      responses:
+        "200":
+          description: Role atualizada
+        "400":
+          description: Erro ao atualizar (ex: tentando editar role base)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                systemRole:
+                  summary: Tentativa de editar role base
+                  value:
+                    error: "não é possível editar uma role base do sistema (system: true)"
+        "404":
+          description: Role não encontrada
+    delete:
+      summary: Remove role (soft delete)
+      description: |
+        **Restrição:** Roles com `system: true` (roles base) **não podem** ser deletadas via API.
+        Roles base só podem ser atualizadas via sync de manifest (`POST /applications/sync`).
+        
+        Use este endpoint apenas para roles customizadas (`system: false`).
+      tags: [Roles]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Role removida
+        "400":
+          description: Erro ao deletar (ex: tentando deletar role base)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                systemRole:
+                  summary: Tentativa de deletar role base
+                  value:
+                    error: "não é possível deletar uma role base do sistema (system: true)"
+        "404":
+          description: Role não encontrada
+
+  # ==================== PERMISSIONS ====================
+  /permissions:
+    get:
+      summary: Lista permissions da aplicação
+      tags: [Permissions]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de permissions
+    post:
+      summary: Cria uma nova permission
+      description: |
+        **⚠️ DESABILITADO:** Permissions **não podem** ser criadas via API.
+        
+        Permissions devem ser criadas **apenas via sync de manifest** (`POST /applications/sync`).
+        
+        **Motivo:** Permissions são sempre definidas pela aplicação (backend) e devem refletir as rotas/módulos reais do sistema. Permitir criação manual quebraria a segurança e a sincronização com o backend.
+        
+        Veja [docs/manifest-sync.md](../docs/manifest-sync.md) para mais detalhes.
+      tags: [Permissions]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, action]
+              properties:
+                subject:
+                  type: string
+                  example: Device
+                action:
+                  type: string
+                  example: create
+                description:
+                  type: string
+                  example: Gerenciar usuários
+                conditions:
+                  type: string
+                  example: '{"userId": "${user.id}"}'
+      responses:
+        "400":
+          description: Permissions devem ser criadas apenas via sync de manifest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                disabled:
+                  summary: Tentativa de criar permission via API
+                  value:
+                    error: "permissions devem ser criadas apenas via sync de manifest (POST /applications/sync). Permissions são sempre definidas pela aplicação, nunca pelo cliente"
+
+  /permissions/{id}:
+    put:
+      summary: Atualiza uma permission
+      tags: [Permissions]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                conditions:
+                  type: string
+                active:
+                  type: boolean
+      responses:
+        "200":
+          description: Permission atualizada
+    delete:
+      summary: Remove permission (soft delete)
+      tags: [Permissions]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Permission removida
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Token JWT obtido através do endpoint /authenticate.
+        Use para autenticação normal após bootstrap.
+    hmacAuth:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: |
+        Autenticação HMAC para bootstrap inicial (sem aplicação/usuário ainda).
+        Requer headers `X-Signature` (assinatura HMAC-SHA256) e `X-Timestamp` (Unix timestamp).
+        O secret compartilhado deve ser configurado como `BOOTSTRAP_SECRET` no servidor e `RETECHAUTH_BOOTSTRAP_SECRET` no CLI.
+        
+  
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Tipo do erro
+          example: "Method Not Allowed"
+        message:
+          type: string
+          description: Mensagem de erro descritiva
+          example: "Versão desatualizada: o usuário foi modificado por outro processo"
+        code:
+          type: integer
+          description: Código HTTP do erro
+          example: 409

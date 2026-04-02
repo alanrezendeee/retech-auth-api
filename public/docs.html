@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>{{.Title}}</title>
+	<meta name="description" content="{{.Description}}" />
+	<link rel="icon" type="image/png" href="/public/logo-single.png" />
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		html, body {
+			height: 100%;
+			font-family: 'Montserrat', 'Roboto', sans-serif;
+			background: #fafbfc;
+		}
+
+		body {
+			margin: 0;
+			padding: 0;
+			color: #3d4752;
+			line-height: 1.6;
+		}
+
+		#redoc-container {
+			height: 100%;
+		}
+
+		/* Redoc overrides */
+		.redoc {
+			font-family: 'Montserrat', 'Roboto', sans-serif !important;
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.redoc * {
+			font-family: 'Montserrat', 'Roboto', sans-serif !important;
+		}
+
+		.redoc code,
+		.redoc pre,
+		code,
+		pre {
+			font-family: 'Roboto Mono', 'Fira Code', 'Source Code Pro', monospace !important;
+		}
+
+		.redoc > div {
+			height: 100% !important;
+		}
+
+		/* Sidebar customization */
+		.redoc .menu-content {
+			background: #f8f9fa !important;
+			border-right: 1px solid #e3e8ef !important;
+			padding-top: 0 !important;
+		}
+
+		.redoc .menu-content-wrapper {
+			padding: 20px 0 !important;
+		}
+
+		.redoc .menu-title {
+			padding: 20px 24px 16px !important;
+			font-size: 18px !important;
+			font-weight: 700 !important;
+			color: #2c3e50 !important;
+			letter-spacing: 0 !important;
+			border-bottom: 1px solid #e3e8ef;
+			margin-bottom: 16px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.redoc .menu-title::before {
+			content: "🔐";
+			font-size: 20px;
+		}
+
+		.redoc .menu-item {
+			padding: 0 !important;
+		}
+
+		.redoc .menu-item > div {
+			padding: 10px 24px !important;
+			font-size: 14px !important;
+			color: #475569 !important;
+			cursor: pointer;
+			transition: all 0.2s ease;
+		}
+
+		.redoc .menu-item > div:hover {
+			background: rgba(0, 0, 0, 0.03);
+			color: #2e8b57;
+		}
+
+		.redoc .menu-item.active > div {
+			background: rgba(46, 139, 87, 0.08) !important;
+			color: #2e8b57 !important;
+			font-weight: 600 !important;
+			border-left: 3px solid #2e8b57;
+			padding-left: 21px !important;
+		}
+
+		.redoc .menu-item.active > div::before {
+			content: "📗 ";
+			margin-right: 4px;
+		}
+
+		.redoc .menu-item > div::before {
+			content: "📘 ";
+			margin-right: 4px;
+			opacity: 0.6;
+		}
+
+		.redoc .menu-item.active > div::before {
+			opacity: 1;
+		}
+
+		.redoc .menu-item.nested > div {
+			padding-left: 40px !important;
+		}
+
+		/* Search input */
+		.redoc .api-info-wrapper .api-info-header {
+			padding: 20px 0 !important;
+		}
+
+		.redoc input[type="search"],
+		.redoc input[type="text"] {
+			width: calc(100% - 48px) !important;
+			margin: 0 24px 16px 24px !important;
+			padding: 10px 12px !important;
+			border: 1px solid #d5dce0 !important;
+			border-radius: 6px !important;
+			font-size: 14px !important;
+			font-family: 'Roboto', sans-serif !important;
+			color: #3d4752 !important;
+		}
+
+		.redoc input[type="search"]:focus,
+		.redoc input[type="text"]:focus {
+			outline: none;
+			border-color: #2e8b57 !important;
+			box-shadow: 0 0 0 2px rgba(46, 139, 87, 0.1) !important;
+		}
+
+		/* Main content area */
+		.redoc .api-content {
+			background: #ffffff !important;
+			padding: 0 !important;
+		}
+
+		.redoc .api-content > div {
+			padding: 60px 80px !important;
+			max-width: 900px;
+		}
+
+		.redoc .hero-section {
+			background: #ffffff;
+			border-radius: 16px;
+			box-shadow: 0 18px 50px rgba(60, 72, 88, 0.12);
+			padding: 48px 56px;
+			margin-bottom: 48px;
+			border: 1px solid #e3e8ef;
+		}
+
+		.redoc .hero-title {
+			display: flex;
+			align-items: center;
+			gap: 14px;
+			font-size: 40px;
+			font-weight: 400;
+			color: #2c3e50;
+			margin-bottom: 18px;
+		}
+
+		.redoc .hero-subtitle {
+			font-size: 16px;
+			color: #4a5568;
+			margin-bottom: 32px;
+			line-height: 1.8;
+		}
+
+		.redoc .hero-features {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+			gap: 18px;
+			margin-bottom: 24px;
+		}
+
+		.redoc .hero-feature {
+			display: flex;
+			align-items: flex-start;
+			gap: 12px;
+			font-size: 14px;
+			color: #3d4752;
+		}
+
+		.redoc .hero-feature strong {
+			color: #2c3e50;
+		}
+
+		.redoc .hero-meta {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 12px;
+			align-items: center;
+			font-size: 14px;
+			color: #4a5568;
+			margin-bottom: 12px;
+		}
+
+		.redoc .hero-meta a {
+			color: #2e8b57 !important;
+			font-weight: 500;
+		}
+
+		/* Right panel customization */
+		.redoc-right-panel {
+			background: #263238 !important;
+			border-left: 1px solid #37474f;
+		}
+
+		.redoc-right-panel * {
+			color: #eceff1 !important;
+		}
+
+		.redoc-right-panel .tab-button {
+			background: rgba(255, 255, 255, 0.1) !important;
+			border: none !important;
+			color: #90caf9 !important;
+			padding: 8px 16px !important;
+			border-radius: 4px !important;
+			cursor: pointer;
+			transition: all 0.2s ease;
+		}
+
+		.redoc-right-panel .tab-button.active {
+			background: #2e8b57 !important;
+			color: #ffffff !important;
+		}
+
+		.redoc-right-panel .tab-button:hover {
+			background: rgba(46, 139, 87, 0.2) !important;
+		}
+
+		/* Headers */
+		.redoc h1,
+		.redoc h2,
+		.redoc h3 {
+			color: #2c3e50 !important;
+			font-weight: 400 !important;
+			margin-top: 32px !important;
+			margin-bottom: 16px !important;
+			display: block;
+			letter-spacing: -0.2px;
+		}
+
+		.redoc h1 {
+			font-size: 36px !important;
+			font-weight: 300 !important;
+		}
+
+		.redoc h2 {
+			font-size: 26px !important;
+			border-bottom: 2px solid #f0f2f5;
+			padding-bottom: 12px !important;
+			font-weight: 300 !important;
+		}
+
+		.redoc h3 {
+			font-size: 18px !important;
+			font-weight: 400 !important;
+		}
+
+		/* Text content */
+		.redoc p {
+			color: #3d4752 !important;
+			font-size: 14px !important;
+			line-height: 1.8 !important;
+			margin-bottom: 16px !important;
+		}
+
+		/* Code blocks */
+		.redoc pre {
+			background: #1e2a33 !important;
+			border-radius: 6px !important;
+			padding: 16px !important;
+			overflow-x: auto;
+			border: 1px solid #37474f;
+		}
+
+		.redoc code {
+			font-family: 'SFMono-Regular', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, monospace !important;
+			font-size: 13px !important;
+			color: #81c784 !important;
+		}
+
+		.redoc pre code {
+			color: #a1d76a !important;
+		}
+
+		/* HTTP method badges */
+		.redoc .http-method {
+			display: inline-block;
+			padding: 4px 12px !important;
+			border-radius: 4px !important;
+			font-weight: 700 !important;
+			font-size: 12px !important;
+			text-transform: uppercase !important;
+			margin-right: 12px !important;
+		}
+
+		.redoc .http-method.get {
+			background: #2e8b57 !important;
+			color: #ffffff !important;
+		}
+
+		.redoc .http-method.post {
+			background: #2e8b57 !important;
+			color: #ffffff !important;
+		}
+
+		.redoc .http-method.put {
+			background: #f5a623 !important;
+			color: #ffffff !important;
+		}
+
+		.redoc .http-method.delete {
+			background: #e74c3c !important;
+			color: #ffffff !important;
+		}
+
+	/* Response samples styling */
+	.response-block-custom {
+		background: transparent !important;
+		border: none !important;
+		border-radius: 0 !important;
+		padding: 0 !important;
+		margin: 32px 0 40px !important;
+		box-shadow: none;
+	}
+
+	.response-block-custom .response-title-custom {
+		font-size: 18px !important;
+		font-weight: 600 !important;
+		color: #e8edf3 !important;
+		margin: 0 0 20px !important;
+		letter-spacing: 0;
+		text-transform: none;
+	}
+
+	.response-block-custom .response-title-custom::after {
+		display: none;
+	}
+
+	.response-block-custom [role="tablist"] {
+		display: flex;
+		flex-wrap: wrap;
+		row-gap: 10px;
+		column-gap: 10px;
+		margin-top: 24px !important;
+		margin-left: 4px !important;
+		margin-bottom: 20px !important;
+	}
+
+	.response-block-custom [role="tab"] {
+		position: relative;
+		background: #ffffff !important;
+		border: 1px solid rgba(0, 0, 0, 0.08) !important;
+		color: #2d3748 !important;
+		padding: 4px 12px !important;
+		margin: 0 !important;
+		border-radius: 4px !important;
+		font-size: 11.5px !important;
+		font-weight: 600 !important;
+		letter-spacing: 0 !important;
+		text-transform: none !important;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+	}
+
+		.response-block-custom [role="tab"]::after {
+			content: "";
+			position: absolute;
+			inset: -2px;
+			border-radius: 24px;
+			opacity: 0;
+			transition: opacity 0.2s ease;
+		}
+
+		.response-block-custom [role="tab"]:hover {
+			transform: translateY(-2px);
+			border-color: rgba(255, 255, 255, 0.22) !important;
+			box-shadow: 0 12px 26px rgba(9, 13, 18, 0.35);
+		}
+
+	.response-block-custom [role="tab"][aria-selected="true"] {
+		background: #ffffff !important;
+		border-color: rgba(0, 0, 0, 0.12) !important;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+		transform: none;
+		color: #2d3748 !important;
+	}
+
+	.response-block-custom [role="tab"].response-tab-success {
+		color: #2f855a !important;
+	}
+
+		.redoc .response-tab-warning {
+			color: #f6ad55 !important;
+			border-color: rgba(246, 173, 85, 0.35) !important;
+		}
+
+		.redoc .response-tab-info {
+			color: #63b3ed !important;
+			border-color: rgba(99, 179, 237, 0.35) !important;
+		}
+
+		.redoc .response-tab-error {
+			color: #f56565 !important;
+			border-color: rgba(245, 101, 101, 0.35) !important;
+		}
+
+		.redoc .response-tab-default {
+			color: #e2e8f0 !important;
+			border-color: rgba(255, 255, 255, 0.12) !important;
+		}
+
+		.response-block-custom [role="tab"][aria-selected="true"].response-tab-success {
+			color: #276749 !important;
+		}
+
+		.response-block-custom [role="tab"][aria-selected="true"].response-tab-warning {
+			color: #c05621 !important;
+		}
+
+		.response-block-custom [role="tab"][aria-selected="true"].response-tab-info {
+			color: #2b6cb0 !important;
+		}
+
+		.response-block-custom [role="tab"][aria-selected="true"].response-tab-error {
+			color: #c53030 !important;
+		}
+
+	.response-block-custom .content-type {
+		background: #1a2129 !important;
+		border-radius: 6px !important;
+		padding: 12px 16px !important;
+		border: 1px solid rgba(255, 255, 255, 0.05) !important;
+		color: #c8d1da !important;
+		font-weight: 600 !important;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 16px !important;
+	}
+
+		.response-block-custom .content-type span,
+		.response-block-custom .content-type code {
+			font-family: 'Roboto Mono', monospace !important;
+			font-size: 13px !important;
+			color: #c8d4df !important;
+			text-transform: lowercase;
+		}
+
+	.response-block-custom pre {
+		margin-top: 12px !important;
+		border-radius: 6px !important;
+		border: 1px solid rgba(255, 255, 255, 0.05) !important;
+		background: #0d1319 !important;
+		box-shadow: none;
+	}
+
+		.response-block-custom .response-sample {
+			overflow: hidden;
+			margin-bottom: 8px !important;
+		}
+
+		/* Parameters section */
+		.redoc .parameters {
+			margin-top: 24px !important;
+		}
+
+		.redoc .parameters-row {
+			display: grid;
+			grid-template-columns: 1fr 2fr 1fr;
+			gap: 16px;
+			padding: 12px 0;
+			border-bottom: 1px solid #f0f2f5;
+		}
+
+		.redoc .parameters-row:last-child {
+			border-bottom: none;
+		}
+
+		.redoc .param-name {
+			font-weight: 600 !important;
+			color: #2c3e50 !important;
+			font-family: 'SFMono-Regular', monospace !important;
+		}
+
+		.redoc .param-name::before {
+			content: "📝 ";
+			margin-right: 4px;
+		}
+
+		.redoc .param-type {
+			color: #7d8fa3 !important;
+			font-size: 13px !important;
+		}
+
+		.redoc .param-required {
+			color: #e74c3c !important;
+			font-weight: 700 !important;
+		}
+
+		.redoc .param-required::before {
+			content: "⚠️ ";
+			margin-right: 4px;
+		}
+
+	/* Response list - deixa código e descrição na mesma linha */
+	/* Força TUDO que estiver dentro da seção de Responses a ficar inline */
+	.redoc button[aria-expanded] {
+		display: inline-flex !important;
+		flex-direction: row !important;
+		align-items: center !important;
+		width: 100% !important;
+	}
+
+	.redoc button[aria-expanded] > * {
+		display: inline !important;
+		margin-right: 8px !important;
+	}
+
+	.redoc button[aria-expanded] span,
+	.redoc button[aria-expanded] div,
+	.redoc button[aria-expanded] h3,
+	.redoc button[aria-expanded] h4,
+	.redoc button[aria-expanded] h5 {
+		display: inline !important;
+		white-space: normal !important;
+	}
+
+	/* Força elementos do Redoc especificamente */
+	[class*="ResponseTitle"],
+	[class*="response-title"],
+	[class*="ResponseCode"],
+	[class*="response-code"] {
+		display: inline !important;
+		margin-right: 8px !important;
+	}
+
+	/* Links */
+	.redoc a {
+		color: #2e8b57 !important;
+		text-decoration: none;
+	}
+
+	.redoc a:hover {
+		text-decoration: underline;
+	}
+
+		/* Content type labels */
+		.redoc .content-type {
+			font-size: 13px !important;
+			color: #cbd5e0 !important;
+			font-weight: 600 !important;
+			margin-bottom: 12px !important;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+		}
+
+		/* Tabs styling */
+		.redoc .tab-button {
+			background: #f0f2f5 !important;
+			border: none !important;
+			color: #475569 !important;
+			padding: 10px 16px !important;
+			margin-right: 4px !important;
+			border-radius: 4px 4px 0 0 !important;
+			cursor: pointer;
+			font-weight: 500;
+			transition: all 0.2s ease;
+		}
+
+		.redoc .tab-button:hover {
+			background: #e3e8ef !important;
+		}
+
+		/* Responsive */
+		@media (max-width: 768px) {
+			.redoc .api-content > div {
+				padding: 32px 16px !important;
+			}
+
+			.redoc .redoc-right-panel {
+				display: none;
+			}
+		}
+	</style>
+</head>
+<body>
+	<div id="redoc-container"></div>
+	<script src="/public/redoc.standalone.js"></script>
+	<script>
+		function addIcons() {
+			const emojiPrefixRegex = /^(?:[\p{Emoji_Presentation}\p{Extended_Pictographic}]\uFE0F?\s*)+/u;
+
+			function applyIcon(el, icon) {
+				if (!el || !icon) return;
+				const original = el.dataset.originalText || el.textContent.trim().replace(emojiPrefixRegex, '').trim();
+				el.dataset.originalText = original;
+				if (el.dataset.iconApplied === icon) return;
+				el.textContent = `${icon} ${original}`;
+				el.dataset.iconApplied = icon;
+			}
+
+			function iconForHeading(text) {
+				if (!text) return '✨';
+				const lower = text.toLowerCase();
+				if (lower.includes('health') || lower.includes('saúde')) return '🩺';
+				if (lower.includes('autentic')) return '🔐';
+				if (lower.includes('refresh') || lower.includes('token')) return '♻️';
+				if (lower.includes('usuário') || lower.includes('user')) return '👤';
+				if (lower.includes('caracter') || lower.includes('feature')) return '⚙️';
+				if (lower.includes('response')) return '📡';
+				if (lower.includes('parameter')) return '📝';
+				return '✨';
+			}
+
+			window.requestAnimationFrame(() => {
+				const h1s = document.querySelectorAll('[role="doc-chapter"] > h1, .api-info-header h1');
+				h1s.forEach(el => applyIcon(el, '🚀'));
+
+				const h2s = document.querySelectorAll('h2');
+				h2s.forEach(el => {
+					const original = el.dataset.originalText || el.textContent.trim().replace(emojiPrefixRegex, '').trim();
+					applyIcon(el, iconForHeading(original));
+				});
+
+				const h3s = document.querySelectorAll('h3');
+				h3s.forEach(el => applyIcon(el, '✨'));
+
+				const successCodes = document.querySelectorAll('.response-col_status .response-code, [data-response-code="200"]');
+				successCodes.forEach(el => {
+					if (el.textContent.trim() === '200') {
+						applyIcon(el, '✅');
+					}
+				});
+
+				const errorCodes = document.querySelectorAll('.response-col_status .response-code, [data-response-code]');
+				errorCodes.forEach(el => {
+					const code = el.textContent.trim();
+					if (['400', '401', '403', '404', '429', '503'].includes(code)) {
+						applyIcon(el, '❌');
+					}
+				});
+
+				const requiredBadges = document.querySelectorAll('.required, [data-type="required"], [aria-label*="required"]');
+				requiredBadges.forEach(el => applyIcon(el, '⚠️'));
+
+				const paramNames = document.querySelectorAll('.param-name');
+				paramNames.forEach(el => applyIcon(el, '📝'));
+
+			const responseHeadings = document.querySelectorAll('h3[data-original-text="Response samples"], h3[data-original-text="Request samples"]');
+			responseHeadings.forEach(heading => {
+				heading.classList.add('response-title-custom');
+				const block = heading.parentElement;
+				if (block && !block.classList.contains('response-block-custom')) {
+					block.classList.add('response-block-custom');
+				}
+			});
+
+		// Move para escopo global para o MutationObserver conseguir acessar
+		window.fixResponseLayout = function() {
+			// Busca por TODOS os elementos que possam conter códigos de resposta
+			// Não apenas botões, mas também divs, spans, etc.
+			const allElements = document.querySelectorAll('*');
+			
+			allElements.forEach(element => {
+				// Pega apenas o texto direto do elemento (sem filhos)
+				const directText = Array.from(element.childNodes)
+					.filter(node => node.nodeType === Node.TEXT_NODE)
+					.map(node => node.textContent.trim())
+					.join(' ');
+				
+				// Se o elemento tem filhos E o primeiro filho tem texto de código HTTP
+				if (element.children.length > 0) {
+					const firstChildText = element.children[0]?.textContent?.trim() || '';
+					const fullText = element.textContent.trim();
+					
+					// Verifica se parece com: "— 401" seguido de descrição em outro elemento
+					const codeMatch = firstChildText.match(/^[—✓▼]?\s*(\d{3})$/);
+					const hasDescription = element.children.length > 1 || directText.length > 0;
+					
+					// Ou se o texto completo tem o padrão código + descrição
+					const inlineMatch = fullText.match(/^[—✓▼]?\s*(\d{3})\s+(.+)$/);
+					
+				if ((codeMatch && hasDescription && fullText.length < 150) || (inlineMatch && inlineMatch[2].length < 100)) {
+					// FILTROS para NÃO aplicar
+					
+					// 1. Verifica se tem classe ou atributo relacionado a samples/tabs
+					const className = element.className || '';
+					const hasTabRole = element.getAttribute('role') === 'tab' || element.querySelector('[role="tab"]');
+					const hasResponseSamplesClass = className.includes('response-sample') || className.includes('response-tab');
+					
+					// 2. Verifica se NÃO está dentro de "Response samples" ou "Request samples"
+					let isInsideSamples = false;
+					let parent = element.parentElement;
+					
+					for (let i = 0; i < 5 && parent; i++) {
+						const parentClass = parent.className || '';
+						if (parentClass.includes('response-sample') || parentClass.includes('request-sample')) {
+							isInsideSamples = true;
+							break;
+						}
+						
+						const siblings = parent.parentElement ? Array.from(parent.parentElement.children) : [];
+						const h3Before = siblings.slice(0, siblings.indexOf(parent)).reverse().find(el => el.tagName === 'H3');
+						
+						if (h3Before && (h3Before.textContent.includes('Response samples') || h3Before.textContent.includes('Request samples'))) {
+							isInsideSamples = true;
+							break;
+						}
+						parent = parent.parentElement;
+					}
+					
+					// 3. Verifica se já não tem display flex aplicado
+					const currentDisplay = window.getComputedStyle(element).display;
+					
+					// SÓ aplica se passar em TODOS os filtros
+					if (!isInsideSamples && !hasTabRole && !hasResponseSamplesClass && currentDisplay !== 'flex' && currentDisplay !== 'inline-flex') {
+						element.style.display = 'flex';
+						element.style.flexDirection = 'row';
+						element.style.alignItems = 'center';
+						element.style.gap = '8px';
+						element.style.flexWrap = 'wrap';
+						
+						// Força todos os filhos a serem inline-block
+						Array.from(element.children).forEach(child => {
+							child.style.display = 'inline-block';
+							child.style.marginRight = '8px';
+						});
+					}
+				}
+				}
+			});
+		};
+		
+		fixResponseLayout();
+
+				const responseTabs = document.querySelectorAll('.response-samples [role="tab"], .request-samples [role="tab"]');
+				responseTabs.forEach(tab => {
+					const raw = (tab.dataset.code || tab.textContent || '').trim();
+					const code = raw.toUpperCase();
+					const numericCode = parseInt(code, 10);
+
+					tab.classList.remove(
+						'response-tab-success',
+						'response-tab-error',
+						'response-tab-warning',
+						'response-tab-info',
+						'response-tab-default'
+					);
+
+					if (!Number.isNaN(numericCode)) {
+						if (numericCode >= 200 && numericCode < 300) {
+							tab.classList.add('response-tab-success');
+						} else if (numericCode >= 300 && numericCode < 400) {
+							tab.classList.add('response-tab-warning');
+						} else if (numericCode >= 100 && numericCode < 200) {
+							tab.classList.add('response-tab-info');
+						} else {
+							tab.classList.add('response-tab-error');
+						}
+					} else if (code === 'DEFAULT') {
+						tab.classList.add('response-tab-info');
+					} else {
+						tab.classList.add('response-tab-default');
+					}
+				});
+			});
+		}
+
+		document.addEventListener('DOMContentLoaded', function () {
+			if (typeof Redoc === 'undefined') {
+				console.error('Redoc bundle não carregado.');
+				return;
+			}
+
+			// Obtém configurações do template Go
+			const apiBaseURL = '{{.APIBaseURL}}';
+
+			const specUrl = new URL('{{.SpecURL}}', window.location.origin).href;
+
+			Redoc.init(specUrl, {
+				hideDownloadButton: false,
+				expandResponses: '200,201',
+				expandSingleSchemaField: true,
+				menuToggle: true,
+				nativeScrollbars: true,
+				disableSearch: false,
+				scrollYOffset: 0,
+			theme: {
+				colors: {
+					primary: {
+							main: '#2e8b57',
+							light: '#e6f4ec',
+							dark: '#1e5a3f',
+							contrastText: '#ffffff'
+						},
+						text: {
+							primary: '#2c3e50',
+							secondary: '#7d8fa3'
+						},
+						border: {
+							dark: '#e3e8ef',
+							light: '#f0f2f5'
+						},
+						codeBlock: {
+							backgroundColor: '#1e2a33',
+							textColor: '#a1d76a'
+					},
+					success: {
+							main: '#2e8b57',
+							light: 'rgba(46, 139, 87, 0.1)'
+						},
+						error: {
+							main: '#e74c3c',
+							light: 'rgba(231, 76, 60, 0.1)'
+						},
+						warning: {
+							main: '#f5a623'
+						},
+						info: {
+							main: '#0066cc'
+						}
+					},
+					typography: {
+						fontFamily: '"Montserrat", "Roboto", sans-serif',
+						fontSize: '14px',
+						fontWeight: '400',
+						headings: {
+							fontFamily: '"Montserrat", "Roboto", sans-serif',
+							fontWeight: '300',
+							lineHeight: '1.4'
+						},
+						subtitle: {
+							fontFamily: '"Montserrat", "Roboto", sans-serif',
+							fontWeight: '300'
+						},
+						labels: {
+							fontFamily: '"Montserrat", "Roboto", sans-serif',
+							fontWeight: '500'
+						},
+						links: {
+							fontFamily: '"Montserrat", "Roboto", sans-serif',
+							color: '#2e8b57',
+							hover: '#1e5a3f',
+							visited: '#2e8b57',
+							fontWeight: '600'
+						},
+						code: {
+							fontFamily: '"Roboto Mono", "Fira Code", "Source Code Pro", monospace',
+							fontSize: '13px'
+						}
+					},
+					sidebar: {
+						backgroundColor: '#f8f9fa',
+						textColor: '#475569',
+						activeTextColor: '#2e8b57',
+						width: '280px'
+					},
+					rightPanel: {
+						backgroundColor: '#263238',
+						textColor: '#eceff1'
+					},
+					logo: {
+						maxWidth: '200px',
+						margin: '0'
+					}
+				},
+				onFailure: function(err) {
+					console.error('Erro ao carregar spec:', err);
+				}
+			}, document.getElementById('redoc-container'));
+
+
+	// Função para injetar hero section
+	function injectHeroSection() {
+		const supportEmail = '{{.HeroSupportEmail}}';
+		const supportURL = '{{.HeroSupportURL}}';
+		const license = '{{.HeroLicense}}';
+
+		// Verifica se já foi injetado
+		if (document.getElementById('custom-hero-section')) return;
+
+		// Procura pelo parágrafo da descrição da API (p que vem depois do h1/título)
+		const apiContentDiv = document.querySelector('[class*="api-content"]') || document.querySelector('div[class*="ApiContent"]');
+		
+		if (apiContentDiv) {
+			// Procura pelo primeiro parágrafo de descrição
+			const descriptionParagraph = apiContentDiv.querySelector('p');
+			
+			if (descriptionParagraph) {
+				// Monta a linha de informações apenas com os campos disponíveis
+				const infoParts = [];
+				if (supportEmail) infoParts.push(`<span>📧 Suporte: <a href="mailto:${supportEmail}" style="color: #3b82f6; text-decoration: none;">${supportEmail}</a></span>`);
+				if (supportURL) infoParts.push(`<span>🔗 URL: <a href="${supportURL}" target="_blank" style="color: #3b82f6; text-decoration: none;">${supportURL}</a></span>`);
+				if (license) infoParts.push(`<span>📄 Licença: <strong style="color: #1e293b;">${license}</strong></span>`);
+				
+				const heroHTML = `
+					<div id="custom-hero-section" style="margin: 32px 0 24px 0; padding: 0; font-family: 'Montserrat', 'Roboto', sans-serif;">
+						<!-- Header com informações da API -->
+						<div style="font-size: 13px; color: #64748b; padding: 16px; background: #f8fafc; border-left: 3px solid #3b82f6; border-radius: 4px; margin-bottom: 16px;">
+							<div style="margin-bottom: 8px;">
+								<span style="font-weight: 600; color: #1e293b;">🚀 Base URL:</span> 
+								<code style="background: #e2e8f0; padding: 2px 8px; border-radius: 3px; color: #1e293b; font-size: 12px;">${apiBaseURL}</code>
+							</div>
+							${infoParts.length > 0 ? `<div style="display: flex; flex-wrap: wrap; gap: 16px;">${infoParts.join('')}</div>` : ''}
+						</div>
+					</div>
+				`;
+
+				// Insere DEPOIS do parágrafo de descrição
+				descriptionParagraph.insertAdjacentHTML('afterend', heroHTML);
+			}
+		}
+	}
+
+	// Chamar função para adicionar ícones após o Redoc carregar
+	setTimeout(() => {
+		addIcons();
+		injectHeroSection();
+	}, 2000);
+
+	// Re-adicionar ícones quando há navegação/mudança de conteúdo
+	const observer = new MutationObserver(function(mutations) {
+		addIcons();
+		fixResponseLayout(); // Reaplica o layout inline quando o DOM mudar
+		injectHeroSection(); // Reaplica hero section se necessário
+	});
+
+		observer.observe(document.body, {
+			childList: true,
+			subtree: true,
+			characterData: true
+		});
+		});
+	</script>
+</body>
+</html>
+
