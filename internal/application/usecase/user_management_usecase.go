@@ -6,12 +6,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/theretech/retechauth-api/internal/application/service"
-	"github.com/theretech/retechauth-api/internal/domain/dto"
-	"github.com/theretech/retechauth-api/internal/domain/entity"
-	"github.com/theretech/retechauth-api/internal/domain/repository"
-	"github.com/theretech/retechauth-api/internal/infrastructure/http/middleware"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/application/service"
+	"github.com/theretech/retech-auth-api/internal/domain/dto"
+	"github.com/theretech/retech-auth-api/internal/domain/entity"
+	"github.com/theretech/retech-auth-api/internal/domain/repository"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/http/middleware"
 )
 
 var (
@@ -144,7 +144,7 @@ func (uc *UserManagementUseCase) UpdateUser(ctx context.Context, userID, applica
 		expectedVersion = *req.Version
 	}
 
-		user.Name = *req.Name
+	user.Name = *req.Name
 	user.IncrementVersion()
 	user.UpdatedAt = time.Now()
 
@@ -525,4 +525,3 @@ func (uc *UserManagementUseCase) ResetPassword(ctx context.Context, userID, appl
 
 	return nil
 }
-

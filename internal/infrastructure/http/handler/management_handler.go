@@ -3,10 +3,10 @@ package handler
 import (
 	"net/http"
 
-	"github.com/theretech/retechauth-api/internal/application/usecase"
-	"github.com/theretech/retechauth-api/internal/domain/dto"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/application/usecase"
+	"github.com/theretech/retech-auth-api/internal/domain/dto"
 )
 
 // ManagementHandler gerencia operações de applications, roles e permissions
@@ -113,7 +113,7 @@ func (h *ManagementHandler) ListRoles(c *gin.Context) {
 	includePermissions := c.Query("include_permissions") == "true"
 
 	req := dto.ListRolesRequest{
-		Active:            active,
+		Active:             active,
 		IncludePermissions: includePermissions,
 	}
 

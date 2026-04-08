@@ -4,13 +4,13 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -o /retechauth-api ./cmd/api
+RUN CGO_ENABLED=0 go build -o /retech-auth-api ./cmd/api
 
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
-COPY --from=builder /retechauth-api /usr/local/bin/retechauth-api
+COPY --from=builder /retech-auth-api /usr/local/bin/retech-auth-api
 COPY public ./public
 ENV PORT=8080
 EXPOSE 8080
-ENTRYPOINT ["/usr/local/bin/retechauth-api"]
+ENTRYPOINT ["/usr/local/bin/retech-auth-api"]

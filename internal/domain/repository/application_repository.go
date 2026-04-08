@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 
-	"github.com/theretech/retechauth-api/internal/domain/entity"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/domain/entity"
 )
 
 // ApplicationRepository define a interface para operações com aplicações
@@ -17,4 +17,3 @@ type ApplicationRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context, limit, offset int) ([]*entity.Application, error)
 }
-

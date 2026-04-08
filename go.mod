@@ -1,4 +1,4 @@
-module github.com/theretech/retechauth-api
+module github.com/theretech/retech-auth-api
 
 go 1.23.0
 

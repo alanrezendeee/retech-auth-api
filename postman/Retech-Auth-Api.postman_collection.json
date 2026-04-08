@@ -1,0 +1,502 @@
+{
+	"info": {
+		"_postman_id": "b2c3d4e5-auth-api-0002-retech",
+		"name": "Retech - Auth - Api",
+		"description": "Coleção da Retech Auth API (autenticação JWT, usuários, apps, roles, permissions, sync).\n\n**Variáveis**\n- `baseUrlDev`: local (padrão `http://localhost:8000`, alinhado ao `PORT` do `env.example`).\n- `baseUrlProd`: produção (vazio até definir).\n- `accessToken` / `refreshToken`: preencha após **Authenticate** (copie da resposta ou use um script).\n- `authEmail`, `authPassword`, `applicationCode`: credenciais de teste no POST `/v1/authenticate`.\n- IDs (`userId`, `roleId`, `permissionId`, `applicationId`): para rotas com path param.\n\nRotas protegidas usam `Authorization: Bearer {{accessToken}}`. O JWT carrega `application_id` — a API deriva o contexto da aplicação a partir do token.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "baseUrlDev", "value": "http://localhost:8000" },
+		{ "key": "baseUrlProd", "value": "" },
+		{ "key": "accessToken", "value": "" },
+		{ "key": "refreshToken", "value": "" },
+		{ "key": "authEmail", "value": "admin@example.com" },
+		{ "key": "authPassword", "value": "" },
+		{ "key": "applicationCode", "value": "retech-fin-admin" },
+		{ "key": "userId", "value": "" },
+		{ "key": "applicationId", "value": "" },
+		{ "key": "roleId", "value": "" },
+		{ "key": "permissionId", "value": "" }
+	],
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "GET /health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrlDev}}/health",
+						"description": "Padrão: `service`, `status`, `dataBase`, `version`. `503` se o banco estiver indisponível."
+					},
+					"response": []
+				},
+				{
+					"name": "GET /health/live",
+					"request": { "method": "GET", "header": [], "url": "{{baseUrlDev}}/health/live" },
+					"response": []
+				},
+				{
+					"name": "GET /health/ready",
+					"request": { "method": "GET", "header": [], "url": "{{baseUrlDev}}/health/ready" },
+					"response": []
+				},
+				{
+					"name": "GET /v1/health",
+					"request": { "method": "GET", "header": [], "url": "{{baseUrlDev}}/v1/health" },
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Docs & JWKS",
+			"item": [
+				{
+					"name": "GET /docs",
+					"request": { "method": "GET", "header": [], "url": "{{baseUrlDev}}/docs" },
+					"response": []
+				},
+				{
+					"name": "GET /public/openapi-v1.yaml",
+					"request": { "method": "GET", "header": [], "url": "{{baseUrlDev}}/public/openapi-v1.yaml" },
+					"response": []
+				},
+				{
+					"name": "GET /.well-known/jwks.json",
+					"request": { "method": "GET", "header": [], "url": "{{baseUrlDev}}/.well-known/jwks.json" },
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Auth (público)",
+			"item": [
+				{
+					"name": "POST /v1/authenticate",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"{{authPassword}}\",\n  \"application_code\": \"{{applicationCode}}\"\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/authenticate",
+						"description": "Resposta inclui `access_token` e `refresh_token`. Copie para as variáveis da coleção."
+					},
+					"response": []
+				},
+				{
+					"name": "POST /v1/account/authenticate (alias)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"{{authPassword}}\",\n  \"application_code\": \"{{applicationCode}}\"\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/account/authenticate"
+					},
+					"response": []
+				},
+				{
+					"name": "POST /v1/refresh",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/refresh"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Sessão (Bearer)",
+			"item": [
+				{
+					"name": "GET /v1/me",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/me"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users (Bearer)",
+			"item": [
+				{
+					"name": "GET /v1/users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/users?limit=20&offset=0",
+						"description": "Query opcional: `email`, `name`, `active` (true/false), `role`."
+					},
+					"response": []
+				},
+				{
+					"name": "POST /v1/users",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"novo.usuario@example.com\",\n  \"password\": \"SenhaSegura123!\",\n  \"name\": \"Novo Usuário\",\n  \"role_ids\": []\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/users"
+					},
+					"response": []
+				},
+				{
+					"name": "GET /v1/users/:id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/users/{{userId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "PUT /v1/users/:id",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Nome atualizado\"\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/users/{{userId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE /v1/users/:id",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/users/{{userId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "PUT /v1/users/:id/roles",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"role_ids\": []\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/users/{{userId}}/roles"
+					},
+					"response": []
+				},
+				{
+					"name": "PATCH /v1/users/:id/status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"active\": true\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/users/{{userId}}/status"
+					},
+					"response": []
+				},
+				{
+					"name": "POST /v1/users/:id/password/change",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"current_password\": \"senha-atual\",\n  \"new_password\": \"nova-senha-segura\"\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/users/{{userId}}/password/change"
+					},
+					"response": []
+				},
+				{
+					"name": "POST /v1/users/:id/password/reset",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"new_password\": \"nova-senha-definida-pelo-admin\"\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/users/{{userId}}/password/reset"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Applications (Bearer)",
+			"item": [
+				{
+					"name": "GET /v1/applications",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/applications"
+					},
+					"response": []
+				},
+				{
+					"name": "POST /v1/applications",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Minha App\",\n  \"code\": \"minha-app\",\n  \"description\": \"Opcional\"\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/applications"
+					},
+					"response": []
+				},
+				{
+					"name": "GET /v1/applications/:id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/applications/{{applicationId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "PUT /v1/applications/:id",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Nome atualizado\",\n  \"active\": true\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/applications/{{applicationId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE /v1/applications/:id",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/applications/{{applicationId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "POST /v1/applications/sync (Bearer)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"application\": {\n    \"code\": \"{{applicationCode}}\",\n    \"name\": \"App Sync\",\n    \"description\": \"Manifest mínimo\"\n  },\n  \"permissions\": [\n    {\n      \"code\": \"app.example.view\",\n      \"description\": \"Exemplo\",\n      \"subject\": \"Example\",\n      \"action\": \"view\"\n    }\n  ],\n  \"roles\": [\n    {\n      \"code\": \"admin.example\",\n      \"name\": \"Admin Example\",\n      \"system\": false,\n      \"description\": \"\",\n      \"permissions\": [\"app.example.view\"]\n    }\n  ]\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/applications/sync",
+						"description": "Também aceita HMAC: headers `X-Signature` + `X-Timestamp` e body bruto assinado com `BOOTSTRAP_SECRET` (ver middleware sync)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Roles (Bearer)",
+			"item": [
+				{
+					"name": "GET /v1/roles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/roles?include_permissions=true",
+						"description": "Query: `active` (true/false), `include_permissions` (true)."
+					},
+					"response": []
+				},
+				{
+					"name": "POST /v1/roles",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Operador\",\n  \"code\": \"operator.custom\",\n  \"description\": \"\",\n  \"system\": false,\n  \"permission_ids\": []\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/roles"
+					},
+					"response": []
+				},
+				{
+					"name": "GET /v1/roles/:id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/roles/{{roleId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "PUT /v1/roles/:id",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Nome role\",\n  \"active\": true\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/roles/{{roleId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "PUT /v1/roles/:id/permissions",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"permission_codes\": [\"admin.*\"]\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/roles/{{roleId}}/permissions"
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE /v1/roles/:id",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/roles/{{roleId}}"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Permissions (Bearer)",
+			"item": [
+				{
+					"name": "GET /v1/permissions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/permissions"
+					},
+					"response": []
+				},
+				{
+					"name": "POST /v1/permissions",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"subject\": \"User\",\n  \"action\": \"manage\",\n  \"description\": \"Gerenciar usuários\"\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/permissions"
+					},
+					"response": []
+				},
+				{
+					"name": "PUT /v1/permissions/:id",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Atualizado\",\n  \"active\": true\n}"
+						},
+						"url": "{{baseUrlDev}}/v1/permissions/{{permissionId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE /v1/permissions/:id",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+						],
+						"url": "{{baseUrlDev}}/v1/permissions/{{permissionId}}"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

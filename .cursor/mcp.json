@@ -1,0 +1,8 @@
+{
+    "mcpServers": {
+      "retech-auth-api-postgres": {
+        "command": "/Users/alanleitederezende/.nvm/versions/node/v22.18.0/bin/node",
+        "args": ["/Users/alanleitederezende/source/theretech/projetos-producao/retech-auth-api/mcp/postgres/server.js"]
+      }
+    }
+  }

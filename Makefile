@@ -5,7 +5,7 @@ help: ## Mostra esta ajuda
 
 build: ## Compila a aplicação
 	@echo "Compilando aplicação..."
-	@go build -o bin/retechauth-api cmd/api/main.go
+	@go build -o bin/retech-auth-api cmd/api/main.go
 
 run: ## Executa a aplicação
 	@echo "Executando aplicação..."

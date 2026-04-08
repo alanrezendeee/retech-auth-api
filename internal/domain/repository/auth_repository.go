@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 
-	"github.com/theretech/retechauth-api/internal/domain/entity"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/domain/entity"
 )
 
 // PermissionInfo contém informações completas de uma permissão
@@ -69,8 +69,7 @@ type AuthRepository interface {
 	GetRoleByCode(ctx context.Context, applicationID uuid.UUID, code string) (*entity.Role, error)
 	UpsertRole(ctx context.Context, role *entity.Role) error
 	UpsertRolePermissions(ctx context.Context, roleID uuid.UUID, permissionIDs []uuid.UUID) error
-	
+
 	// GetActiveUsersByRole retorna usuários ativos que possuem uma role específica
 	GetActiveUsersByRole(ctx context.Context, roleID, applicationID uuid.UUID) ([]*entity.User, error)
 }
-

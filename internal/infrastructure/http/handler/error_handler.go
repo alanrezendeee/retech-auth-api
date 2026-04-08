@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/theretech/retechauth-api/internal/domain/dto"
 	"github.com/gin-gonic/gin"
+	"github.com/theretech/retech-auth-api/internal/domain/dto"
 )
 
 // MethodNotAllowedHandler trata requisições com método HTTP não permitido (405)
@@ -14,12 +14,12 @@ func MethodNotAllowedHandler(c *gin.Context) {
 	// O Gin já define o header Allow automaticamente quando HandleMethodNotAllowed = true
 	// Mas vamos garantir que está correto
 	allowHeader := c.Writer.Header().Get("Allow")
-	
+
 	// Se o Gin não definiu, inferimos baseado no path
 	if allowHeader == "" {
 		path := normalizePathForInference(c.Request.URL.Path)
 		allowedMethods := inferAllowedMethods(path)
-		
+
 		if len(allowedMethods) == 0 {
 			// Fallback: infere baseado no padrão do path
 			if strings.Contains(path, "/") && strings.Count(path, "/") >= 3 {
@@ -30,11 +30,11 @@ func MethodNotAllowedHandler(c *gin.Context) {
 				allowedMethods = []string{"GET", "POST", "OPTIONS"}
 			}
 		}
-		
+
 		c.Header("Allow", strings.Join(allowedMethods, ", "))
 		allowHeader = strings.Join(allowedMethods, ", ")
 	}
-	
+
 	c.JSON(http.StatusMethodNotAllowed, dto.ErrorResponse{
 		Error:   "Method Not Allowed",
 		Message: "O método HTTP '" + c.Request.Method + "' não é permitido para este endpoint. Métodos permitidos: " + allowHeader,
@@ -48,17 +48,17 @@ func normalizePathForInference(path string) string {
 	if idx := strings.Index(path, "?"); idx != -1 {
 		path = path[:idx]
 	}
-	
+
 	// Remove barras duplicadas
 	for strings.Contains(path, "//") {
 		path = strings.ReplaceAll(path, "//", "/")
 	}
-	
+
 	// Remove trailing slash (exceto raiz)
 	if len(path) > 1 && strings.HasSuffix(path, "/") {
 		path = strings.TrimSuffix(path, "/")
 	}
-	
+
 	return path
 }
 

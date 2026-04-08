@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/theretech/retechauth-api/internal/application/service"
 	"github.com/gin-gonic/gin"
+	"github.com/theretech/retech-auth-api/internal/application/service"
 )
 
 // SyncMiddleware é um middleware flexível para /sync que aceita JWT OU HMAC
 type SyncMiddleware struct {
-	jwtService    service.JWTService
+	jwtService      service.JWTService
 	bootstrapSecret string
 }
 
@@ -33,7 +33,7 @@ func (m *SyncMiddleware) AuthenticateSync() gin.HandlerFunc {
 		// 1. Primeiro, tenta HMAC (bootstrap com secret compartilhado)
 		signature := c.GetHeader("X-Signature")
 		timestampStr := c.GetHeader("X-Timestamp")
-		
+
 		if signature != "" && timestampStr != "" {
 			// Ler body para validar HMAC
 			body, err := io.ReadAll(c.Request.Body)
@@ -42,7 +42,7 @@ func (m *SyncMiddleware) AuthenticateSync() gin.HandlerFunc {
 				c.Abort()
 				return
 			}
-			
+
 			// Restaurar body para o handler usar depois
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 
@@ -113,4 +113,3 @@ func (m *SyncMiddleware) AuthenticateSync() gin.HandlerFunc {
 		c.Next()
 	}
 }
-

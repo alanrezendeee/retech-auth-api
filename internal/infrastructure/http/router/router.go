@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/theretech/retechauth-api/internal/infrastructure/http/handler"
-	"github.com/theretech/retechauth-api/internal/infrastructure/http/middleware"
 	"github.com/gin-gonic/gin"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/http/handler"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/http/middleware"
 )
 
 type APIVersion struct {

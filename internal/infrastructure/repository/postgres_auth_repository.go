@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/theretech/retechauth-api/internal/domain/entity"
-	"github.com/theretech/retechauth-api/internal/domain/repository"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/domain/entity"
+	"github.com/theretech/retech-auth-api/internal/domain/repository"
 )
 
 type postgresAuthRepository struct {

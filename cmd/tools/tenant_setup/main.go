@@ -82,7 +82,7 @@ func main() {
 	fmt.Printf("Usuário:   %s <%s>\n", usr.Name, usr.Email)
 	fmt.Printf("Roles criadas: %d\n", len(roles))
 	fmt.Println("----------------------------------------------")
-	fmt.Println("Pronto! Já é possível autenticar no retechauth-api usando esse usuário.")
+	fmt.Println("Pronto! Já é possível autenticar no retech-auth-api usando esse usuário.")
 	fmt.Println("Lembre-se de compartilhar as credenciais com segurança e atualizar a senha assim que possível.")
 	fmt.Println("==============================================")
 }

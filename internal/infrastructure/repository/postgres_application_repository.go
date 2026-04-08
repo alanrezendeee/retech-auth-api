@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/theretech/retechauth-api/internal/domain/entity"
-	"github.com/theretech/retechauth-api/internal/domain/repository"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/domain/entity"
+	"github.com/theretech/retech-auth-api/internal/domain/repository"
 )
 
 type postgresApplicationRepository struct {
@@ -95,7 +95,7 @@ func (r *postgresApplicationRepository) UpsertByCode(ctx context.Context, app *e
 		}
 		return r.Create(ctx, app)
 	}
-	
+
 	// Existe, atualiza
 	app.ID = existingApp.ID
 	app.Active = existingApp.Active
@@ -135,4 +135,3 @@ func (r *postgresApplicationRepository) List(ctx context.Context, limit, offset 
 
 	return apps, rows.Err()
 }
-

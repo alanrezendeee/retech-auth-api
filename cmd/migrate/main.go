@@ -6,10 +6,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/theretech/retechauth-api/internal/config"
-	"github.com/theretech/retechauth-api/internal/infrastructure/database"
-	"github.com/theretech/retechauth-api/internal/infrastructure/migration"
 	_ "github.com/lib/pq"
+	"github.com/theretech/retech-auth-api/internal/config"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/database"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/migration"
 )
 
 func main() {
@@ -72,5 +72,5 @@ func main() {
 
 	default:
 		log.Fatalf("Comando inválido: %s. Use 'up', 'down' ou 'status'", os.Args[1])
-		}
 	}
+}

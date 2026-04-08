@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/theretech/retechauth-api/internal/application/usecase"
-	"github.com/theretech/retechauth-api/internal/domain/dto"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/application/usecase"
+	"github.com/theretech/retech-auth-api/internal/domain/dto"
 )
 
 // UserHandler gerencia requisições relacionadas a usuários
@@ -190,8 +190,8 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	if err := h.managementUseCase.DeleteUser(c.Request.Context(), userID, applicationID, currentUserID); err != nil {
 		// Trata erros específicos com códigos HTTP apropriados
 		errorMsg := err.Error()
-		if errorMsg == "não é possível excluir um usuário master" || 
-		   errorMsg == "não é possível excluir um usuário master, incluindo a si mesmo" {
+		if errorMsg == "não é possível excluir um usuário master" ||
+			errorMsg == "não é possível excluir um usuário master, incluindo a si mesmo" {
 			respondWithError(c, http.StatusForbidden, errorMsg)
 			return
 		}

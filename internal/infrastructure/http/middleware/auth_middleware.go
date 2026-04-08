@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/theretech/retechauth-api/internal/application/service"
-	"github.com/theretech/retechauth-api/internal/domain/dto"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/application/service"
+	"github.com/theretech/retech-auth-api/internal/domain/dto"
 )
 
 type contextKey string

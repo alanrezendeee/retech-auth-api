@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/theretech/retechauth-api/internal/config"
 	"github.com/gin-gonic/gin"
+	"github.com/theretech/retech-auth-api/internal/config"
 )
 
 // DocsHandler serves the static docs preview page `public/docs.html`.

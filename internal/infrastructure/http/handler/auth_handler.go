@@ -1,13 +1,16 @@
 package handler
 
 import (
+	"database/sql"
+	"log"
 	"net/http"
 
-	"github.com/theretech/retechauth-api/internal/application/service"
-	"github.com/theretech/retechauth-api/internal/application/usecase"
-	"github.com/theretech/retechauth-api/internal/domain/dto"
-	"github.com/theretech/retechauth-api/internal/infrastructure/http/middleware"
 	"github.com/gin-gonic/gin"
+	"github.com/theretech/retech-auth-api/internal/application/service"
+	"github.com/theretech/retech-auth-api/internal/application/usecase"
+	"github.com/theretech/retech-auth-api/internal/domain/dto"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/http/middleware"
+	"github.com/theretech/retech-auth-api/internal/version"
 )
 
 // AuthHandler gerencia as requisições de autenticação
@@ -16,6 +19,7 @@ type AuthHandler struct {
 	refreshTokenUseCase *usecase.RefreshTokenUseCase
 	getUserInfoUseCase  *usecase.GetUserInfoUseCase
 	jwtService          service.JWTService
+	db                  *sql.DB
 }
 
 // NewAuthHandler cria uma nova instância de AuthHandler
@@ -24,24 +28,32 @@ func NewAuthHandler(
 	refreshTokenUseCase *usecase.RefreshTokenUseCase,
 	getUserInfoUseCase *usecase.GetUserInfoUseCase,
 	jwtService service.JWTService,
+	db *sql.DB,
 ) *AuthHandler {
 	return &AuthHandler{
 		authenticateUseCase: authenticateUseCase,
 		refreshTokenUseCase: refreshTokenUseCase,
 		getUserInfoUseCase:  getUserInfoUseCase,
 		jwtService:          jwtService,
+		db:                  db,
 	}
 }
 
 // Authenticate manipula a requisição de autenticação
 func (h *AuthHandler) Authenticate(c *gin.Context) {
+	clientIP := c.ClientIP()
 	var req dto.AuthenticateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[auth] POST /authenticate 400 corpo_json_inválido ip=%s err=%v", clientIP, err)
 		respondWithError(c, http.StatusBadRequest, "Corpo da requisição inválido")
 		return
 	}
 
 	if req.Email == "" || req.Password == "" || req.ApplicationCode == "" {
+		log.Printf(
+			"[auth] POST /authenticate 400 campos_obrigatórios ip=%s email_vazio=%t senha_vazia=%t application_code_vazio=%t",
+			clientIP, req.Email == "", req.Password == "", req.ApplicationCode == "",
+		)
 		respondWithError(c, http.StatusBadRequest, "Email, senha e código da aplicação são obrigatórios")
 		return
 	}
@@ -50,17 +62,25 @@ func (h *AuthHandler) Authenticate(c *gin.Context) {
 	if err != nil {
 		switch err {
 		case usecase.ErrInvalidCredentials:
+			log.Printf(
+				"[auth] POST /authenticate 401 credenciais_inválidas ip=%s email=%q application_code=%q (ver logs [authenticate] para detalhe: usuário/app ou senha)",
+				clientIP, req.Email, req.ApplicationCode,
+			)
 			respondWithError(c, http.StatusUnauthorized, "Credenciais inválidas")
 		case usecase.ErrInactiveUser:
+			log.Printf("[auth] POST /authenticate 403 usuário_inativo ip=%s email=%q application_code=%q", clientIP, req.Email, req.ApplicationCode)
 			respondWithError(c, http.StatusForbidden, "Usuário inativo")
 		case usecase.ErrInactiveApp:
+			log.Printf("[auth] POST /authenticate 403 aplicação_inativa ip=%s email=%q application_code=%q", clientIP, req.Email, req.ApplicationCode)
 			respondWithError(c, http.StatusForbidden, "Aplicação inativa")
 		default:
+			log.Printf("[auth] POST /authenticate 500 erro_interno ip=%s email=%q application_code=%q err=%v", clientIP, req.Email, req.ApplicationCode, err)
 			respondWithError(c, http.StatusInternalServerError, "Erro ao autenticar usuário")
 		}
 		return
 	}
 
+	log.Printf("[auth] POST /authenticate 200 ok ip=%s email=%q application_code=%q user_id=%s", clientIP, req.Email, req.ApplicationCode, response.User.ID)
 	respondWithJSON(c, http.StatusOK, response)
 }
 
@@ -121,12 +141,34 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	respondWithJSON(c, http.StatusOK, response)
 }
 
-// Health retorna o status de saúde da API
+type healthCheckResponse struct {
+	Service  string `json:"service"`
+	Status   string `json:"status"`
+	DataBase string `json:"dataBase"`
+	Version  string `json:"version"`
+}
+
+// Health retorna service, status agregado, dataBase (up/down) e version.
 func (h *AuthHandler) Health(c *gin.Context) {
-	respondWithJSON(c, http.StatusOK, map[string]string{
-		"status":  "ok",
-		"service": "retechauth-api",
-		"version": "1.0.0",
+	dataBase := "up"
+	status := "ok"
+	code := http.StatusOK
+
+	if h.db == nil {
+		dataBase = "down"
+		status = "degraded"
+		code = http.StatusServiceUnavailable
+	} else if err := h.db.PingContext(c.Request.Context()); err != nil {
+		dataBase = "down"
+		status = "degraded"
+		code = http.StatusServiceUnavailable
+	}
+
+	respondWithJSON(c, code, healthCheckResponse{
+		Service:  version.Service,
+		Status:   status,
+		DataBase: dataBase,
+		Version:  version.Version,
 	})
 }
 

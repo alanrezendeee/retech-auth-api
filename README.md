@@ -13,7 +13,7 @@ Serviço central de **autenticação e autorização** para os produtos **The Re
 ## Módulo Go
 
 ```
-github.com/theretech/retechauth-api
+github.com/theretech/retech-auth-api
 ```
 
 ## Documentação da API

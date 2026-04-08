@@ -4,11 +4,11 @@ import (
 	"context"
 	"log"
 
-	"github.com/theretech/retechauth-api/internal/application/service"
-	"github.com/theretech/retechauth-api/internal/config"
-	"github.com/theretech/retechauth-api/internal/domain/entity"
-	"github.com/theretech/retechauth-api/internal/infrastructure/database"
-	"github.com/theretech/retechauth-api/internal/infrastructure/repository"
+	"github.com/theretech/retech-auth-api/internal/application/service"
+	"github.com/theretech/retech-auth-api/internal/config"
+	"github.com/theretech/retech-auth-api/internal/domain/entity"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/database"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/repository"
 )
 
 func main() {

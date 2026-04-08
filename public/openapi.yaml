@@ -27,7 +27,7 @@ paths:
                     example: ok
                   service:
                     type: string
-                    example: retechauth-api
+                    example: retech-auth-api
                   version:
                     type: string
                     example: 1.0.0

@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/theretech/retechauth-api/internal/application/service"
-	"github.com/theretech/retechauth-api/internal/domain/dto"
-	"github.com/theretech/retechauth-api/internal/domain/entity"
-	"github.com/theretech/retechauth-api/internal/domain/repository"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/application/service"
+	"github.com/theretech/retech-auth-api/internal/domain/dto"
+	"github.com/theretech/retech-auth-api/internal/domain/entity"
+	"github.com/theretech/retech-auth-api/internal/domain/repository"
 )
 
 // ManagementUseCase consolida operações de gerenciamento

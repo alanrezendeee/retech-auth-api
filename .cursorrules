@@ -1,0 +1,160 @@
+# =========================
+# GLOBAL ENGINEERING RULES
+# =========================
+
+Seja direto, objetivo e prático.
+Evite explicações longas desnecessárias.
+Prefira ações concretas a teoria.
+
+Sempre priorize:
+- Resolução do problema
+- Clareza
+- Validação com dados reais
+
+---
+
+# =========================
+# DATABASE-FIRST DEBUGGING
+# =========================
+
+Sempre que a pergunta envolver:
+- erro de backend
+- autenticação
+- inconsistência de dados
+- regras de negócio
+- comportamento inesperado
+
+Você DEVE:
+
+1. Usar o MCP postgres obrigatoriamente
+2. Executar queries reais
+3. Validar hipóteses com dados do banco
+4. Só então responder
+
+---
+
+# =========================
+# REGRAS OBRIGATÓRIAS
+# =========================
+
+- Nunca assuma nada sem consultar o banco
+- Nunca responda baseado apenas em código
+- Sempre valide no banco se existir dúvida
+- Sempre use a tool `execute_sql` quando necessário
+
+---
+
+# =========================
+# FLUXO PADRÃO DE INVESTIGAÇÃO
+# =========================
+
+1. Identificar entidades/tabelas relevantes
+2. Descobrir estrutura (information_schema se necessário)
+3. Executar SELECTs específicos
+4. Verificar dados reais
+5. Cruzar informações
+6. Concluir com base nos dados
+
+---
+
+# =========================
+# BOAS PRÁTICAS DE QUERY
+# =========================
+
+- Evitar SELECT *
+- Buscar apenas colunas necessárias
+- Usar filtros (WHERE) sempre que possível
+- Limitar volume de dados
+
+---
+
+# =========================
+# PERFORMANCE
+# =========================
+
+- Evitar múltiplas queries desnecessárias
+- Evitar queries pesadas sem necessidade
+- Preferir queries diretas e objetivas
+- Minimizar payload retornado
+
+---
+
+# =========================
+# TOM DE RESPOSTA
+# =========================
+
+- Seja direto
+- Mostre evidência (dados do banco)
+- Explique apenas o necessário
+- Traga conclusão clara
+
+---
+
+# =========================
+# PRIORIDADE
+# =========================
+
+Sempre siga esta ordem:
+
+1. Dados reais do banco
+2. Lógica do sistema
+3. Hipóteses
+
+Nunca o contrário.
+
+---
+
+# =========================
+# PROIBIDO
+# =========================
+
+- Suposições sem validação
+- Respostas genéricas
+- Explicações teóricas sem execução
+- Ignorar o MCP quando aplicável
+
+---
+
+# =========================
+# EXEMPLO DE COMPORTAMENTO
+# =========================
+
+Pergunta:
+"Por que o login falhou?"
+
+Resposta esperada:
+- Consultar users
+- Consultar applications
+- Consultar vínculos
+- Validar dados
+- Concluir com base real
+
+Nunca responder apenas com "pode ser X ou Y"
+
+---
+
+# =========================
+# CONTEXTO DO PROJETO
+# =========================
+
+Este projeto utiliza:
+- PostgreSQL
+- MCP para acesso ao banco
+- Arquitetura backend com múltiplas entidades relacionadas
+
+O banco é a fonte da verdade.
+
+---
+
+# =========================
+# REGRA FINAL
+# =========================
+
+Se houver qualquer dúvida:
+
+→ Consulte o banco
+→ Execute query
+→ Valide
+→ Responda
+
+Sempre.

@@ -3,10 +3,10 @@ package usecase
 import (
 	"context"
 
-	"github.com/theretech/retechauth-api/internal/domain/dto"
-	"github.com/theretech/retechauth-api/internal/domain/entity"
-	"github.com/theretech/retechauth-api/internal/domain/repository"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/domain/dto"
+	"github.com/theretech/retech-auth-api/internal/domain/entity"
+	"github.com/theretech/retech-auth-api/internal/domain/repository"
 )
 
 // ListUsersUseCase representa o caso de uso para listar usuários
@@ -91,4 +91,3 @@ func (uc *ListUsersUseCase) Execute(ctx context.Context, applicationID uuid.UUID
 		Offset: req.Offset,
 	}, nil
 }
-

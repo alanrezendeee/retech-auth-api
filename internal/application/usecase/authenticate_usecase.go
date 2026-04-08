@@ -3,10 +3,11 @@ package usecase
 import (
 	"context"
 	"errors"
+	"log"
 
-	"github.com/theretech/retechauth-api/internal/application/service"
-	"github.com/theretech/retechauth-api/internal/domain/dto"
-	"github.com/theretech/retechauth-api/internal/domain/repository"
+	"github.com/theretech/retech-auth-api/internal/application/service"
+	"github.com/theretech/retech-auth-api/internal/domain/dto"
+	"github.com/theretech/retech-auth-api/internal/domain/repository"
 )
 
 var (
@@ -40,27 +41,32 @@ func (uc *AuthenticateUseCase) Execute(ctx context.Context, req dto.Authenticate
 	// Busca o usuário por email e aplicação
 	user, app, err := uc.authRepo.FindUserByEmailAndApplication(ctx, req.Email, req.ApplicationCode)
 	if err != nil {
+		log.Printf("[authenticate] falha ao resolver usuário/aplicação email=%q application_code=%q err=%v", req.Email, req.ApplicationCode, err)
 		return nil, ErrInvalidCredentials
 	}
 
 	// Verifica se o usuário está ativo
 	if !user.Active {
+		log.Printf("[authenticate] usuário inativo (bloqueado no domínio) email=%q application_code=%q user_id=%s", req.Email, req.ApplicationCode, user.ID)
 		return nil, ErrInactiveUser
 	}
 
 	// Verifica se a aplicação está ativa
 	if !app.Active {
+		log.Printf("[authenticate] aplicação inativa email=%q application_code=%q app_id=%s", req.Email, req.ApplicationCode, app.ID)
 		return nil, ErrInactiveApp
 	}
 
 	// Verifica a senha
 	if err := uc.hashService.CheckPassword(user.Password, req.Password); err != nil {
+		log.Printf("[authenticate] senha incorreta email=%q application_code=%q user_id=%s", req.Email, req.ApplicationCode, user.ID)
 		return nil, ErrInvalidCredentials
 	}
 
 	// Busca as roles do usuário para incluir no JWT
 	roles, err := uc.authRepo.GetUserRoles(ctx, user.ID, app.ID)
 	if err != nil {
+		log.Printf("[authenticate] erro ao carregar roles email=%q application_code=%q user_id=%s app_id=%s err=%v", req.Email, req.ApplicationCode, user.ID, app.ID, err)
 		return nil, err
 	}
 
@@ -75,11 +81,13 @@ func (uc *AuthenticateUseCase) Execute(ctx context.Context, req dto.Authenticate
 	// Gera os tokens incluindo tenant_id, roles e name (carregados do banco)
 	accessToken, err := uc.jwtService.GenerateAccessToken(user.ID, app.ID, user.Email, user.Name, user.TenantID, roleCodes)
 	if err != nil {
+		log.Printf("[authenticate] erro ao gerar access token email=%q user_id=%s err=%v", user.Email, user.ID, err)
 		return nil, err
 	}
 
 	refreshToken, err := uc.jwtService.GenerateRefreshToken(user.ID, app.ID, user.Email, user.Name, user.TenantID, roleCodes)
 	if err != nil {
+		log.Printf("[authenticate] erro ao gerar refresh token email=%q user_id=%s err=%v", user.Email, user.ID, err)
 		return nil, err
 	}
 

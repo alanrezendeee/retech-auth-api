@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 
-	"github.com/theretech/retechauth-api/internal/domain/entity"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/domain/entity"
 )
 
 // UserFilters define os filtros para listagem de usuários
@@ -35,4 +35,3 @@ type UserRepository interface {
 	List(ctx context.Context, limit, offset int) ([]*entity.User, error)
 	ListByApplication(ctx context.Context, filters UserFilters) ([]*entity.User, int, error)
 }
-

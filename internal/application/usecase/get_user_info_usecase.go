@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/theretech/retechauth-api/internal/domain/dto"
-	"github.com/theretech/retechauth-api/internal/domain/repository"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/domain/dto"
+	"github.com/theretech/retech-auth-api/internal/domain/repository"
 )
 
 var (
@@ -63,7 +63,7 @@ func (uc *GetUserInfoUseCase) Execute(ctx context.Context, userID, applicationID
 	// Converte para DTOs
 	rolesDTO := make([]dto.RoleDTO, len(roles))
 	isMaster := false
-	
+
 	for i, role := range roles {
 		rolesDTO[i] = dto.RoleDTO{
 			ID:          role.ID,
@@ -71,7 +71,7 @@ func (uc *GetUserInfoUseCase) Execute(ctx context.Context, userID, applicationID
 			Code:        role.Code,
 			Description: role.Description,
 		}
-		
+
 		// Detecta se o usuário tem a role "master"
 		if role.Code == "master" {
 			isMaster = true
@@ -82,7 +82,7 @@ func (uc *GetUserInfoUseCase) Execute(ctx context.Context, userID, applicationID
 	// Isso dá acesso total automático a todos os recursos (padrão CASL.js)
 	var abilitiesDTO []dto.AbilityDTO
 	var permissionsDTO []dto.PermissionDTO
-	
+
 	if isMaster {
 		// Master tem acesso total - apenas uma ability "manage all"
 		abilitiesDTO = []dto.AbilityDTO{
@@ -97,7 +97,7 @@ func (uc *GetUserInfoUseCase) Execute(ctx context.Context, userID, applicationID
 		// Usuários comuns: converte permissions para abilities
 		permissionsDTO = make([]dto.PermissionDTO, len(permissions))
 		abilitiesDTO = make([]dto.AbilityDTO, len(permissions))
-		
+
 		for i, permInfo := range permissions {
 			perm := permInfo.Permission
 			permissionsDTO[i] = dto.PermissionDTO{
@@ -144,4 +144,3 @@ func (uc *GetUserInfoUseCase) Execute(ctx context.Context, userID, applicationID
 		Abilities:   abilitiesDTO,
 	}, nil
 }
-

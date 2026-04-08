@@ -3,9 +3,9 @@ package handler
 import (
 	"net/http"
 
-	"github.com/theretech/retechauth-api/internal/infrastructure/http/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/http/middleware"
 )
 
 func getApplicationIDFromContext(c *gin.Context) (uuid.UUID, error) {

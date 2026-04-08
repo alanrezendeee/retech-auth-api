@@ -7,16 +7,16 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/theretech/retechauth-api/internal/application/service"
-	"github.com/theretech/retechauth-api/internal/application/usecase"
-	"github.com/theretech/retechauth-api/internal/config"
-	"github.com/theretech/retechauth-api/internal/infrastructure/database"
-	"github.com/theretech/retechauth-api/internal/infrastructure/http/handler"
-	"github.com/theretech/retechauth-api/internal/infrastructure/http/middleware"
-	"github.com/theretech/retechauth-api/internal/infrastructure/migration"
-	"github.com/theretech/retechauth-api/internal/infrastructure/http/router"
-	"github.com/theretech/retechauth-api/internal/infrastructure/repository"
 	"github.com/gin-gonic/gin"
+	"github.com/theretech/retech-auth-api/internal/application/service"
+	"github.com/theretech/retech-auth-api/internal/application/usecase"
+	"github.com/theretech/retech-auth-api/internal/config"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/database"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/http/handler"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/http/middleware"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/http/router"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/migration"
+	"github.com/theretech/retech-auth-api/internal/infrastructure/repository"
 )
 
 type responseWriter struct {
@@ -115,7 +115,7 @@ func main() {
 	authRepo := repository.NewPostgresAuthRepository(db)
 
 	hashService := service.NewHashService()
-	
+
 	// Inicializa serviço de chaves RSA
 	rsaKeyService, err := service.NewRSAKeyService(cfg.JWT.RSAKeysDir)
 	if err != nil {
@@ -123,7 +123,7 @@ func main() {
 	}
 	log.Printf("✅ Serviço de chaves RSA inicializado (diretório: %s)", cfg.JWT.RSAKeysDir)
 	log.Printf("🔑 Key ID atual: %s", rsaKeyService.GetCurrentKeyID())
-	
+
 	// Inicializa serviço JWT com chaves RSA
 	jwtService := service.NewJWTService(
 		rsaKeyService,
@@ -143,10 +143,11 @@ func main() {
 		refreshTokenUseCase,
 		getUserInfoUseCase,
 		jwtService,
+		db,
 	)
 	userHandler := handler.NewUserHandler(listUsersUseCase, userManagementUseCase)
 	managementHandler := handler.NewManagementHandler(managementUseCase)
-	
+
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	syncMiddleware := middleware.NewSyncMiddleware(jwtService, cfg.BootstrapSecret)
 	corsMiddleware := middleware.NewCORSMiddleware(cfg.CORS.AllowedOrigins)
@@ -165,7 +166,7 @@ func main() {
 				protected := r.Group("")
 				protected.Use(authMiddleware.Authenticate())
 				protected.GET("/me", authHandler.Me)
-				
+
 				protected.GET("/users", userHandler.ListUsers)
 				protected.POST("/users", userHandler.CreateUser)
 				protected.GET("/users/:id", userHandler.GetUser)

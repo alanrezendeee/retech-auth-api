@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/theretech/retechauth-api/internal/domain/entity"
-	"github.com/theretech/retechauth-api/internal/domain/repository"
 	"github.com/google/uuid"
+	"github.com/theretech/retech-auth-api/internal/domain/entity"
+	"github.com/theretech/retech-auth-api/internal/domain/repository"
 )
 
 type postgresUserRepository struct {
@@ -156,7 +156,7 @@ func (r *postgresUserRepository) UpdateUserApplicationStatus(ctx context.Context
 		}
 		return errors.New("vínculo usuário-aplicação não encontrado")
 	}
-	
+
 	query = `
 		UPDATE users
 		SET version = COALESCE(version, 1) + 1, updated_at = NOW()
@@ -231,7 +231,7 @@ func (r *postgresUserRepository) UpdatePassword(ctx context.Context, userID uuid
 	if err != nil {
 		return err
 	}
-	
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
@@ -239,7 +239,7 @@ func (r *postgresUserRepository) UpdatePassword(ctx context.Context, userID uuid
 	if rows == 0 {
 		return errors.New("usuário não encontrado")
 	}
-	
+
 	return nil
 }
 
@@ -253,7 +253,7 @@ func (r *postgresUserRepository) UpdatePasswordWithVersion(ctx context.Context, 
 	if err != nil {
 		return err
 	}
-	
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
@@ -265,7 +265,7 @@ func (r *postgresUserRepository) UpdatePasswordWithVersion(ctx context.Context, 
 		}
 		return errors.New("usuário não encontrado")
 	}
-	
+
 	return nil
 }
 
@@ -279,7 +279,7 @@ func (r *postgresUserRepository) SoftDeleteFromApplication(ctx context.Context, 
 	if err != nil {
 		return err
 	}
-	
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
@@ -287,7 +287,7 @@ func (r *postgresUserRepository) SoftDeleteFromApplication(ctx context.Context, 
 	if rows == 0 {
 		return errors.New("vínculo usuário-aplicação não encontrado")
 	}
-	
+
 	return nil
 }
 
@@ -297,7 +297,7 @@ func (r *postgresUserRepository) ListByApplication(ctx context.Context, filters 
 		FROM users u
 		INNER JOIN user_applications ua ON u.id = ua.user_id
 	`
-	
+
 	// Adiciona JOIN com roles se filtrar por role
 	if filters.RoleCode != "" {
 		baseQuery += `
@@ -305,36 +305,36 @@ func (r *postgresUserRepository) ListByApplication(ctx context.Context, filters 
 			INNER JOIN roles r ON ur.role_id = r.id
 		`
 	}
-	
+
 	// WHERE clause
 	where := ` WHERE ua.application_id = $1 AND ua.active = true`
 	args := []interface{}{filters.ApplicationID}
 	argCount := 1
-	
+
 	if filters.Email != "" {
 		argCount++
 		where += fmt.Sprintf(" AND u.email ILIKE $%d", argCount)
 		args = append(args, "%"+filters.Email+"%")
 	}
-	
+
 	if filters.Name != "" {
 		argCount++
 		where += fmt.Sprintf(" AND u.name ILIKE $%d", argCount)
 		args = append(args, "%"+filters.Name+"%")
 	}
-	
+
 	if filters.Active != nil {
 		argCount++
 		where += fmt.Sprintf(" AND u.active = $%d", argCount)
 		args = append(args, *filters.Active)
 	}
-	
+
 	if filters.RoleCode != "" {
 		argCount++
 		where += fmt.Sprintf(" AND r.code = $%d", argCount)
 		args = append(args, filters.RoleCode)
 	}
-	
+
 	// Count total
 	countQuery := "SELECT COUNT(DISTINCT u.id) " + baseQuery + where
 	var total int
@@ -342,7 +342,7 @@ func (r *postgresUserRepository) ListByApplication(ctx context.Context, filters 
 	if err != nil {
 		return nil, 0, err
 	}
-	
+
 	// Select com paginação
 	selectQuery := fmt.Sprintf(`
 		SELECT DISTINCT u.id, u.email, u.password, u.name, u.tenant_id, u.active, COALESCE(u.version, 1) as version, u.created_at, u.updated_at
@@ -350,15 +350,15 @@ func (r *postgresUserRepository) ListByApplication(ctx context.Context, filters 
 		ORDER BY u.created_at DESC
 		LIMIT $%d OFFSET $%d
 	`, baseQuery, where, argCount+1, argCount+2)
-	
+
 	args = append(args, filters.Limit, filters.Offset)
-	
+
 	rows, err := r.db.QueryContext(ctx, selectQuery, args...)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer rows.Close()
-	
+
 	var users []*entity.User
 	for rows.Next() {
 		user := &entity.User{}
@@ -370,7 +370,6 @@ func (r *postgresUserRepository) ListByApplication(ctx context.Context, filters 
 		}
 		users = append(users, user)
 	}
-	
+
 	return users, total, rows.Err()
 }
-
