@@ -1,26 +1,28 @@
 services:
   postgres:
-    image: postgres:16-alpine
-    container_name: retech-auth-db
+    image: postgres:17-alpine
+    container_name: ${CONTAINER_NAME}
     environment:
-      POSTGRES_USER: retech_auth_user
-      POSTGRES_PASSWORD: 4b4a8b44-6860-4bf6-827c-9b50f2fbbc89
-      POSTGRES_DB: retech_auth_db
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+      POSTGRES_DB: ${PGDATABASE}
+      PGDATA: ${PGDATA}
     ports:
-      - "5430:5432"
+      - "${PGPORT}:5432"
     volumes:
       - retech_auth_db_volume:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U retech_auth_user -d retech-auth-db"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER}"]
+      interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - retech-auth-network
+      - retech-network
+
+networks:
+  retech-network:
+    driver: bridge
 
 volumes:
   retech_auth_db_volume:
-
-networks:
-  retech-auth-network:
-    driver: bridge
+    name: ${PGVOLUME_NAME}
