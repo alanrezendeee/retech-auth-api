@@ -10,6 +10,7 @@ import (
 // UserFilters define os filtros para listagem de usuários
 type UserFilters struct {
 	ApplicationID uuid.UUID
+	TenantID      *string
 	Email         string
 	Name          string
 	Active        *bool

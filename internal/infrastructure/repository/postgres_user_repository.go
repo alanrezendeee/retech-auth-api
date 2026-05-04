@@ -22,12 +22,12 @@ func NewPostgresUserRepository(db *sql.DB) repository.UserRepository {
 
 func (r *postgresUserRepository) Create(ctx context.Context, user *entity.User) error {
 	query := `
-		INSERT INTO users (id, email, password, name, tenant_id, active, version, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO users (id, email, password, name, active, version, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 	_, err := r.db.ExecContext(
 		ctx, query,
-		user.ID, user.Email, user.Password, user.Name, user.TenantID, user.Active, user.Version,
+		user.ID, user.Email, user.Password, user.Name, user.Active, user.Version,
 		user.CreatedAt, user.UpdatedAt,
 	)
 	return err
@@ -35,13 +35,13 @@ func (r *postgresUserRepository) Create(ctx context.Context, user *entity.User) 
 
 func (r *postgresUserRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.User, error) {
 	query := `
-		SELECT id, email, password, name, tenant_id, active, COALESCE(version, 1) as version, created_at, updated_at
+		SELECT id, email, password, name, active, COALESCE(version, 1) as version, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
 	user := &entity.User{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&user.ID, &user.Email, &user.Password, &user.Name, &user.TenantID, &user.Active,
+		&user.ID, &user.Email, &user.Password, &user.Name, &user.Active,
 		&user.Version, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
@@ -55,13 +55,13 @@ func (r *postgresUserRepository) FindByID(ctx context.Context, id uuid.UUID) (*e
 
 func (r *postgresUserRepository) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
 	query := `
-		SELECT id, email, password, name, tenant_id, active, COALESCE(version, 1) as version, created_at, updated_at
+		SELECT id, email, password, name, active, COALESCE(version, 1) as version, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
 	user := &entity.User{}
 	err := r.db.QueryRowContext(ctx, query, email).Scan(
-		&user.ID, &user.Email, &user.Password, &user.Name, &user.TenantID, &user.Active,
+		&user.ID, &user.Email, &user.Password, &user.Name, &user.Active,
 		&user.Version, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
@@ -76,12 +76,12 @@ func (r *postgresUserRepository) FindByEmail(ctx context.Context, email string) 
 func (r *postgresUserRepository) Update(ctx context.Context, user *entity.User) error {
 	query := `
 		UPDATE users
-		SET email = $2, password = $3, name = $4, tenant_id = $5, active = $6, version = COALESCE(version, 1) + 1, updated_at = $7
+		SET email = $2, password = $3, name = $4, active = $5, version = COALESCE(version, 1) + 1, updated_at = $6
 		WHERE id = $1
 	`
 	_, err := r.db.ExecContext(
 		ctx, query,
-		user.ID, user.Email, user.Password, user.Name, user.TenantID, user.Active, user.UpdatedAt,
+		user.ID, user.Email, user.Password, user.Name, user.Active, user.UpdatedAt,
 	)
 	return err
 }
@@ -89,12 +89,12 @@ func (r *postgresUserRepository) Update(ctx context.Context, user *entity.User) 
 func (r *postgresUserRepository) UpdateWithVersion(ctx context.Context, user *entity.User, expectedVersion int) error {
 	query := `
 		UPDATE users
-		SET email = $2, password = $3, name = $4, tenant_id = $5, active = $6, version = COALESCE(version, 1) + 1, updated_at = $7
-		WHERE id = $1 AND COALESCE(version, 1) = $8
+		SET email = $2, password = $3, name = $4, active = $5, version = COALESCE(version, 1) + 1, updated_at = $6
+		WHERE id = $1 AND COALESCE(version, 1) = $7
 	`
 	result, err := r.db.ExecContext(
 		ctx, query,
-		user.ID, user.Email, user.Password, user.Name, user.TenantID, user.Active, user.UpdatedAt, expectedVersion,
+		user.ID, user.Email, user.Password, user.Name, user.Active, user.UpdatedAt, expectedVersion,
 	)
 	if err != nil {
 		return err
@@ -174,7 +174,7 @@ func (r *postgresUserRepository) Delete(ctx context.Context, id uuid.UUID) error
 
 func (r *postgresUserRepository) List(ctx context.Context, limit, offset int) ([]*entity.User, error) {
 	query := `
-		SELECT id, email, password, name, tenant_id, active, COALESCE(version, 1) as version, created_at, updated_at
+		SELECT id, email, password, name, active, COALESCE(version, 1) as version, created_at, updated_at
 		FROM users
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
@@ -189,7 +189,7 @@ func (r *postgresUserRepository) List(ctx context.Context, limit, offset int) ([
 	for rows.Next() {
 		user := &entity.User{}
 		if err := rows.Scan(
-			&user.ID, &user.Email, &user.Password, &user.Name, &user.TenantID, &user.Active,
+			&user.ID, &user.Email, &user.Password, &user.Name, &user.Active,
 			&user.Version, &user.CreatedAt, &user.UpdatedAt,
 		); err != nil {
 			return nil, err
@@ -202,14 +202,14 @@ func (r *postgresUserRepository) List(ctx context.Context, limit, offset int) ([
 
 func (r *postgresUserRepository) FindByIDAndApplication(ctx context.Context, userID, applicationID uuid.UUID) (*entity.User, error) {
 	query := `
-		SELECT u.id, u.email, u.password, u.name, u.tenant_id, ua.active, COALESCE(u.version, 1) as version, u.created_at, u.updated_at
+		SELECT u.id, u.email, u.password, u.name, ua.active, COALESCE(u.version, 1) as version, u.created_at, u.updated_at
 		FROM users u
 		INNER JOIN user_applications ua ON u.id = ua.user_id
 		WHERE u.id = $1 AND ua.application_id = $2
 	`
 	user := &entity.User{}
 	err := r.db.QueryRowContext(ctx, query, userID, applicationID).Scan(
-		&user.ID, &user.Email, &user.Password, &user.Name, &user.TenantID, &user.Active,
+		&user.ID, &user.Email, &user.Password, &user.Name, &user.Active,
 		&user.Version, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
@@ -311,6 +311,12 @@ func (r *postgresUserRepository) ListByApplication(ctx context.Context, filters 
 	args := []interface{}{filters.ApplicationID}
 	argCount := 1
 
+	if filters.TenantID != nil {
+		argCount++
+		where += fmt.Sprintf(" AND ua.tenant_id = $%d", argCount)
+		args = append(args, *filters.TenantID)
+	}
+
 	if filters.Email != "" {
 		argCount++
 		where += fmt.Sprintf(" AND u.email ILIKE $%d", argCount)
@@ -345,7 +351,7 @@ func (r *postgresUserRepository) ListByApplication(ctx context.Context, filters 
 
 	// Select com paginação
 	selectQuery := fmt.Sprintf(`
-		SELECT DISTINCT u.id, u.email, u.password, u.name, u.tenant_id, u.active, COALESCE(u.version, 1) as version, u.created_at, u.updated_at
+		SELECT DISTINCT u.id, u.email, u.password, u.name, u.active, COALESCE(u.version, 1) as version, u.created_at, u.updated_at
 		%s%s
 		ORDER BY u.created_at DESC
 		LIMIT $%d OFFSET $%d
@@ -363,7 +369,7 @@ func (r *postgresUserRepository) ListByApplication(ctx context.Context, filters 
 	for rows.Next() {
 		user := &entity.User{}
 		if err := rows.Scan(
-			&user.ID, &user.Email, &user.Password, &user.Name, &user.TenantID, &user.Active,
+			&user.ID, &user.Email, &user.Password, &user.Name, &user.Active,
 			&user.Version, &user.CreatedAt, &user.UpdatedAt,
 		); err != nil {
 			return nil, 0, err

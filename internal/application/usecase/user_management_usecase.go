@@ -255,8 +255,7 @@ func (uc *UserManagementUseCase) CreateUser(ctx context.Context, applicationID u
 	}
 
 	// Extrai tenant_id do contexto (do JWT do criador)
-	// O tenant_id é definido pelo AUTH, não pelo frontend
-	// Se o criador não tiver tenant_id, o novo usuário também não terá
+	// Qualquer tenant_id enviado no request é ignorado (segurança)
 	var tenantID *string
 	if tenantIDStr, ok := middleware.GetTenantID(ctx); ok && tenantIDStr != "" {
 		tenantID = &tenantIDStr
@@ -268,17 +267,15 @@ func (uc *UserManagementUseCase) CreateUser(ctx context.Context, applicationID u
 		return nil, err
 	}
 
-	// Cria usuário com tenant_id do criador
-	// NOTA: Qualquer tenant_id enviado no request é ignorado (segurança)
 	user := entity.NewUser(req.Email, passwordHash, req.Name)
-	user.TenantID = tenantID // Define tenant_id do criador
 
 	if err := uc.userRepo.Create(ctx, user); err != nil {
 		return nil, err
 	}
 
-	// Cria vínculo user_application
+	// Cria vínculo user_application com tenant_id do criador
 	userApp := entity.NewUserApplication(user.ID, applicationID)
+	userApp.TenantID = tenantID
 	if err := uc.authRepo.CreateUserApplication(ctx, userApp); err != nil {
 		return nil, errors.New("erro ao vincular usuário à aplicação: " + err.Error())
 	}

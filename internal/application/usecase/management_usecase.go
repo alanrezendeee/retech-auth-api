@@ -777,9 +777,6 @@ func (uc *ManagementUseCase) SyncManifest(ctx context.Context, req dto.SyncManif
 				if userDTO.Active {
 					user.Active = true
 				}
-				// Define tenant_id se fornecido no manifest (especialmente para primeiro usuário/bootstrap)
-				// Se não fornecido, fica NULL (usuário global)
-				user.TenantID = userDTO.TenantID
 				user.ID = uuid.New()
 				user.CreatedAt = time.Now()
 				user.UpdatedAt = time.Now()
@@ -791,16 +788,11 @@ func (uc *ManagementUseCase) SyncManifest(ctx context.Context, req dto.SyncManif
 				action = "created"
 			} else {
 				// Existe, atualizar apenas dados básicos (NÃO atualiza senha)
-				// Segurança: senhas devem ser alteradas apenas via endpoints específicos
-				// (ChangePassword, ResetPassword) que têm validações adequadas
 				user = existingUser
 				user.Name = userDTO.Name
 				if userDTO.Active {
 					user.Active = true
 				}
-				// NOTA: Senha NÃO é atualizada aqui para evitar sobrescrever senhas
-				// já alteradas pelo usuário via UI/API. O manifest geralmente contém
-				// senhas iniciais/temporárias que não devem sobrescrever senhas reais.
 				user.UpdatedAt = time.Now()
 
 				if err := uc.userRepo.Update(ctx, user); err != nil {
@@ -816,6 +808,7 @@ func (uc *ManagementUseCase) SyncManifest(ctx context.Context, req dto.SyncManif
 			if err != nil {
 				// Não existe, criar
 				userApp := entity.NewUserApplication(user.ID, app.ID)
+				userApp.TenantID = userDTO.TenantID // tenant_id no vínculo, não no usuário
 				if userDTO.Active {
 					userApp.Active = true
 				}

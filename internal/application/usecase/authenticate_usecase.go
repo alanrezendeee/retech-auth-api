@@ -39,7 +39,7 @@ func NewAuthenticateUseCase(
 // Execute executa a autenticação do usuário
 func (uc *AuthenticateUseCase) Execute(ctx context.Context, req dto.AuthenticateRequest) (*dto.AuthenticateResponse, error) {
 	// Busca o usuário por email e aplicação
-	user, app, err := uc.authRepo.FindUserByEmailAndApplication(ctx, req.Email, req.ApplicationCode)
+	user, app, userApp, err := uc.authRepo.FindUserByEmailAndApplication(ctx, req.Email, req.ApplicationCode)
 	if err != nil {
 		log.Printf("[authenticate] falha ao resolver usuário/aplicação email=%q application_code=%q err=%v", req.Email, req.ApplicationCode, err)
 		return nil, ErrInvalidCredentials
@@ -78,14 +78,14 @@ func (uc *AuthenticateUseCase) Execute(ctx context.Context, req dto.Authenticate
 		}
 	}
 
-	// Gera os tokens incluindo tenant_id, roles e name (carregados do banco)
-	accessToken, err := uc.jwtService.GenerateAccessToken(user.ID, app.ID, user.Email, user.Name, user.TenantID, roleCodes)
+	// Gera os tokens incluindo tenant_id (do user_application), roles e name
+	accessToken, err := uc.jwtService.GenerateAccessToken(user.ID, app.ID, user.Email, user.Name, userApp.TenantID, roleCodes)
 	if err != nil {
 		log.Printf("[authenticate] erro ao gerar access token email=%q user_id=%s err=%v", user.Email, user.ID, err)
 		return nil, err
 	}
 
-	refreshToken, err := uc.jwtService.GenerateRefreshToken(user.ID, app.ID, user.Email, user.Name, user.TenantID, roleCodes)
+	refreshToken, err := uc.jwtService.GenerateRefreshToken(user.ID, app.ID, user.Email, user.Name, userApp.TenantID, roleCodes)
 	if err != nil {
 		log.Printf("[authenticate] erro ao gerar refresh token email=%q user_id=%s err=%v", user.Email, user.ID, err)
 		return nil, err

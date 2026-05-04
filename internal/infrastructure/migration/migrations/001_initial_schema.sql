@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS user_applications (
 	id UUID PRIMARY KEY,
 	user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	application_id UUID NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+	tenant_id VARCHAR(255),
 	active BOOLEAN NOT NULL DEFAULT true,
 	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -78,6 +79,7 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_applications_code ON applications(code);
 CREATE INDEX IF NOT EXISTS idx_user_applications_user_id ON user_applications(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_applications_application_id ON user_applications(application_id);
+CREATE INDEX IF NOT EXISTS idx_user_applications_tenant_id ON user_applications(tenant_id) WHERE tenant_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_roles_application_id ON roles(application_id);
 CREATE INDEX IF NOT EXISTS idx_permissions_application_id ON permissions(application_id);
 CREATE INDEX IF NOT EXISTS idx_user_roles_user_application_id ON user_roles(user_application_id);

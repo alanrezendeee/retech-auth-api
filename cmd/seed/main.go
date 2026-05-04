@@ -36,11 +36,11 @@ func main() {
 	ctx := context.Background()
 
 	// 1. Aplicação de demonstração (alinhada ao ecossistema Retech)
-	log.Println("📦 Criando aplicação retech-fin-admin...")
+	log.Println("📦 Criando aplicação meufin...")
 	demoApp := entity.NewApplication(
-		"Retech Fin Admin",
-		"retech-fin-admin",
-		"Painel administrativo Retech Fin",
+		"MeuFin",
+		"meufin",
+		"Painel administrativo MeuFin",
 	)
 	if err := appRepo.Create(ctx, demoApp); err != nil {
 		log.Printf("⚠️  Aplicação já existe ou erro: %v", err)
@@ -71,6 +71,8 @@ func main() {
 	// 3. Vincula usuário à aplicação
 	log.Println("🔗 Vinculando usuário à aplicação...")
 	userApp := entity.NewUserApplication(masterUser.ID, demoApp.ID)
+	defaultTenant := "meufin-default"
+	userApp.TenantID = &defaultTenant
 	if err := authRepo.CreateUserApplication(ctx, userApp); err != nil {
 		log.Printf("⚠️  Vínculo já existe ou erro: %v", err)
 	} else {
@@ -156,7 +158,7 @@ func main() {
 
 	log.Println("\n🎉 Seed executado com sucesso!")
 	log.Println("\n📝 Credenciais de teste:")
-	log.Println("   Application Code: retech-fin-admin")
+	log.Println("   Application Code: meufin")
 	log.Println("   Email: admin@theretech.local")
 	log.Println("   Senha: Master@123")
 	log.Println("\n💡 Use estas credenciais para testar a autenticação!")

@@ -140,12 +140,12 @@ func (r *postgresAuthRepository) GetUserRoles(ctx context.Context, userID, appli
 
 func (r *postgresAuthRepository) CreateUserApplication(ctx context.Context, userApp *entity.UserApplication) error {
 	query := `
-		INSERT INTO user_applications (id, user_id, application_id, active, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO user_applications (id, user_id, application_id, tenant_id, active, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 	_, err := r.db.ExecContext(
 		ctx, query,
-		userApp.ID, userApp.UserID, userApp.ApplicationID, userApp.Active,
+		userApp.ID, userApp.UserID, userApp.ApplicationID, userApp.TenantID, userApp.Active,
 		userApp.CreatedAt, userApp.UpdatedAt,
 	)
 	return err
@@ -204,11 +204,12 @@ func (r *postgresAuthRepository) AssignPermissionToRole(ctx context.Context, rol
 	return err
 }
 
-func (r *postgresAuthRepository) FindUserByEmailAndApplication(ctx context.Context, email string, applicationCode string) (*entity.User, *entity.Application, error) {
+func (r *postgresAuthRepository) FindUserByEmailAndApplication(ctx context.Context, email string, applicationCode string) (*entity.User, *entity.Application, *entity.UserApplication, error) {
 	query := `
-		SELECT 
-			u.id, u.email, u.password, u.name, u.tenant_id, u.active, COALESCE(u.version, 1) as version, u.created_at, u.updated_at,
-			a.id, a.name, a.code, a.description, a.active, a.created_at, a.updated_at
+		SELECT
+			u.id, u.email, u.password, u.name, u.active, COALESCE(u.version, 1) as version, u.created_at, u.updated_at,
+			a.id, a.name, a.code, a.description, a.active, a.created_at, a.updated_at,
+			ua.id, ua.tenant_id, ua.active, ua.created_at, ua.updated_at
 		FROM users u
 		INNER JOIN user_applications ua ON ua.user_id = u.id
 		INNER JOIN applications a ON a.id = ua.application_id
@@ -216,21 +217,45 @@ func (r *postgresAuthRepository) FindUserByEmailAndApplication(ctx context.Conte
 	`
 	user := &entity.User{}
 	app := &entity.Application{}
+	userApp := &entity.UserApplication{}
 
 	err := r.db.QueryRowContext(ctx, query, email, applicationCode).Scan(
-		&user.ID, &user.Email, &user.Password, &user.Name, &user.TenantID, &user.Active,
+		&user.ID, &user.Email, &user.Password, &user.Name, &user.Active,
 		&user.Version, &user.CreatedAt, &user.UpdatedAt,
 		&app.ID, &app.Name, &app.Code, &app.Description, &app.Active,
 		&app.CreatedAt, &app.UpdatedAt,
+		&userApp.ID, &userApp.TenantID, &userApp.Active, &userApp.CreatedAt, &userApp.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil, errors.New("usuário ou aplicação não encontrados")
+			return nil, nil, nil, errors.New("usuário ou aplicação não encontrados")
 		}
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return user, app, nil
+	userApp.UserID = user.ID
+	userApp.ApplicationID = app.ID
+
+	return user, app, userApp, nil
+}
+
+func (r *postgresAuthRepository) FindUserApplication(ctx context.Context, userID, applicationID uuid.UUID) (*entity.UserApplication, error) {
+	query := `
+		SELECT id, user_id, application_id, tenant_id, active, created_at, updated_at
+		FROM user_applications
+		WHERE user_id = $1 AND application_id = $2 AND active = true
+	`
+	ua := &entity.UserApplication{}
+	err := r.db.QueryRowContext(ctx, query, userID, applicationID).Scan(
+		&ua.ID, &ua.UserID, &ua.ApplicationID, &ua.TenantID, &ua.Active, &ua.CreatedAt, &ua.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("vínculo usuário-aplicação não encontrado")
+		}
+		return nil, err
+	}
+	return ua, nil
 }
 
 // GetRolesByApplication retorna todas as roles de uma aplicação (com filtro opcional de active)
@@ -570,11 +595,11 @@ func (r *postgresAuthRepository) UpsertRolePermissions(ctx context.Context, role
 // GetActiveUsersByRole retorna usuários ativos que possuem uma role específica
 func (r *postgresAuthRepository) GetActiveUsersByRole(ctx context.Context, roleID, applicationID uuid.UUID) ([]*entity.User, error) {
 	query := `
-		SELECT DISTINCT u.id, u.email, u.password, u.name, u.tenant_id, u.active, COALESCE(u.version, 1) as version, u.created_at, u.updated_at
+		SELECT DISTINCT u.id, u.email, u.password, u.name, u.active, COALESCE(u.version, 1) as version, u.created_at, u.updated_at
 		FROM users u
 		INNER JOIN user_applications ua ON u.id = ua.user_id
 		INNER JOIN user_roles ur ON ua.id = ur.user_application_id
-		WHERE ur.role_id = $1 
+		WHERE ur.role_id = $1
 			AND ua.application_id = $2
 			AND u.active = true
 			AND ua.active = true
@@ -591,7 +616,7 @@ func (r *postgresAuthRepository) GetActiveUsersByRole(ctx context.Context, roleI
 	for rows.Next() {
 		user := &entity.User{}
 		if err := rows.Scan(
-			&user.ID, &user.Email, &user.Password, &user.Name, &user.TenantID, &user.Active,
+			&user.ID, &user.Email, &user.Password, &user.Name, &user.Active,
 			&user.Version, &user.CreatedAt, &user.UpdatedAt,
 		); err != nil {
 			return nil, err

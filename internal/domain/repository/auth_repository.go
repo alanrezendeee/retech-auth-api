@@ -50,7 +50,11 @@ type AuthRepository interface {
 	AssignPermissionToRole(ctx context.Context, rolePermission *entity.RolePermission) error
 
 	// FindUserByEmailAndApplication busca um usuário por email e aplicação
-	FindUserByEmailAndApplication(ctx context.Context, email string, applicationCode string) (*entity.User, *entity.Application, error)
+	// Retorna o user_application para acesso ao tenant_id correto (por app)
+	FindUserByEmailAndApplication(ctx context.Context, email string, applicationCode string) (*entity.User, *entity.Application, *entity.UserApplication, error)
+
+	// FindUserApplication busca o vínculo user_application por userID e applicationID
+	FindUserApplication(ctx context.Context, userID, applicationID uuid.UUID) (*entity.UserApplication, error)
 
 	// Roles
 	GetRolesByApplication(ctx context.Context, applicationID uuid.UUID, active *bool) ([]*entity.Role, error)

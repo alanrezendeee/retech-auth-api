@@ -51,11 +51,11 @@ func (uc *RefreshTokenUseCase) Execute(ctx context.Context, req dto.RefreshToken
 		return nil, ErrInactiveUser
 	}
 
-	// Usa tenant_id do usuário (se tiver) ou do token (se não tiver no usuário)
-	// Isso permite que o tenant_id seja atualizado no banco e refletido no próximo refresh
-	tenantID := user.TenantID
-	if tenantID == nil {
-		tenantID = claims.TenantID
+	// Busca tenant_id atual do user_application (reflete mudanças sem precisar relogar)
+	// Fallback para claims se não encontrar o vínculo
+	tenantID := claims.TenantID
+	if userApp, err := uc.authRepo.FindUserApplication(ctx, user.ID, claims.ApplicationID); err == nil {
+		tenantID = userApp.TenantID
 	}
 
 	// Busca as roles do usuário para incluir no novo token

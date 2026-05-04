@@ -12,7 +12,6 @@ type User struct {
 	Email     string    `json:"email"`
 	Password  string    `json:"-"`
 	Name      string    `json:"name"`
-	TenantID  *string   `json:"tenant_id,omitempty"` // ID da unidade (tenant). Definido pelo sistema de gestão de usuários/onboarding. O AUTH apenas armazena e inclui no token.
 	Active    bool      `json:"active"`
 	Version   int       `json:"version"`
 	CreatedAt time.Time `json:"created_at"`
