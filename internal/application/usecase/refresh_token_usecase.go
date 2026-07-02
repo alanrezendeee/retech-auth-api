@@ -75,8 +75,17 @@ func (uc *RefreshTokenUseCase) Execute(ctx context.Context, req dto.RefreshToken
 		roleCodes = claims.Roles
 	}
 
-	// Gera novos tokens incluindo tenant_id, roles e name
-	accessToken, err := uc.jwtService.GenerateAccessToken(user.ID, claims.ApplicationID, user.Email, user.Name, tenantID, roleCodes)
+	// Permissions efetivas recalculadas a cada refresh — é assim que mudança de
+	// grupo/permissão se propaga sem relogin. Fallback: perms do token antigo.
+	var permCodes []string
+	if permissions, permErr := uc.authRepo.GetUserPermissions(ctx, user.ID, claims.ApplicationID); permErr == nil {
+		permCodes = buildPermCodes(roleCodes, permissions)
+	} else {
+		permCodes = claims.Perms
+	}
+
+	// Gera novos tokens incluindo tenant_id, roles, perms e name
+	accessToken, err := uc.jwtService.GenerateAccessToken(user.ID, claims.ApplicationID, user.Email, user.Name, tenantID, roleCodes, permCodes)
 	if err != nil {
 		return nil, err
 	}
