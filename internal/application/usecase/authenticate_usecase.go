@@ -78,8 +78,16 @@ func (uc *AuthenticateUseCase) Execute(ctx context.Context, req dto.Authenticate
 		}
 	}
 
-	// Gera os tokens incluindo tenant_id (do user_application), roles e name
-	accessToken, err := uc.jwtService.GenerateAccessToken(user.ID, app.ID, user.Email, user.Name, userApp.TenantID, roleCodes)
+	// Permissions efetivas viram o claim `perms` (enforcement stateless nas APIs).
+	permissions, err := uc.authRepo.GetUserPermissions(ctx, user.ID, app.ID)
+	if err != nil {
+		log.Printf("[authenticate] erro ao carregar permissions email=%q user_id=%s app_id=%s err=%v", req.Email, user.ID, app.ID, err)
+		return nil, err
+	}
+	permCodes := buildPermCodes(roleCodes, permissions)
+
+	// Gera os tokens incluindo tenant_id (do user_application), roles, perms e name
+	accessToken, err := uc.jwtService.GenerateAccessToken(user.ID, app.ID, user.Email, user.Name, userApp.TenantID, roleCodes, permCodes)
 	if err != nil {
 		log.Printf("[authenticate] erro ao gerar access token email=%q user_id=%s err=%v", user.Email, user.ID, err)
 		return nil, err

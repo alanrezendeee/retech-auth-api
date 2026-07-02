@@ -24,12 +24,13 @@ type Claims struct {
 	ApplicationID uuid.UUID  `json:"application_id"`
 	TenantID      *string    `json:"tenant_id,omitempty"` // ID da unidade (tenant). Carregado do banco e incluído no token.
 	Roles         []string   `json:"roles,omitempty"`     // Array de role codes (ex: ["master", "core_admin"]). Usado para autorização e multi-tenancy hierárquico.
+	Perms         []string   `json:"perms,omitempty"`     // Codes das permissions efetivas ("subject:action"; master = ["all:manage"]). Permite enforcement stateless nas APIs de recurso.
 	jwt.RegisteredClaims
 }
 
 // JWTService fornece métodos para geração e validação de tokens JWT
 type JWTService interface {
-	GenerateAccessToken(userID, applicationID uuid.UUID, email, name string, tenantID *string, roles []string) (string, error)
+	GenerateAccessToken(userID, applicationID uuid.UUID, email, name string, tenantID *string, roles, perms []string) (string, error)
 	GenerateRefreshToken(userID, applicationID uuid.UUID, email, name string, tenantID *string, roles []string) (string, error)
 	ValidateToken(tokenString string) (*Claims, error)
 	GetExpirationTime() int
@@ -51,8 +52,11 @@ func NewJWTService(rsaKeyService RSAKeyService, expirationHours, refreshExpirati
 	}
 }
 
-// GenerateAccessToken gera um token de acesso usando RS256
-func (s *jwtService) GenerateAccessToken(userID, applicationID uuid.UUID, email, name string, tenantID *string, roles []string) (string, error) {
+// GenerateAccessToken gera um token de acesso usando RS256.
+// perms carrega os codes das permissions efetivas ("subject:action") para
+// enforcement stateless nas APIs de recurso; o refresh token não os carrega
+// (são recalculados a cada refresh).
+func (s *jwtService) GenerateAccessToken(userID, applicationID uuid.UUID, email, name string, tenantID *string, roles, perms []string) (string, error) {
 	expirationTime := time.Now().Add(time.Duration(s.expirationHours) * time.Hour)
 	kid := s.rsaKeyService.GetCurrentKeyID()
 
@@ -64,6 +68,7 @@ func (s *jwtService) GenerateAccessToken(userID, applicationID uuid.UUID, email,
 		ApplicationID: applicationID,
 		TenantID:      tenantID,
 		Roles:         roles, // Array de role codes para autorização e multi-tenancy hierárquico
+		Perms:         perms,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
