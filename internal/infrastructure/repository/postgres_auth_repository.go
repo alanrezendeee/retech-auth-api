@@ -500,12 +500,35 @@ func (r *postgresAuthRepository) GetPermissionByCode(ctx context.Context, applic
 	return perm, nil
 }
 
-// UpsertPermission cria ou atualiza uma permission por application_id + code
+// GetPermissionBySubjectAction busca uma permission por subject+action.
+// Fallback do SyncManifest: rows criadas fora do sync (SQL manual) podem não
+// ter code — a chave natural (application_id, subject, action) sempre existe.
+func (r *postgresAuthRepository) GetPermissionBySubjectAction(ctx context.Context, applicationID uuid.UUID, subject, action string) (*entity.Permission, error) {
+	query := `
+		SELECT id, application_id, COALESCE(code, subject || ':' || action) as code, subject, action, conditions, description, active, created_at, updated_at
+		FROM permissions
+		WHERE application_id = $1 AND subject = $2 AND action = $3
+	`
+	perm := &entity.Permission{}
+	err := r.db.QueryRowContext(ctx, query, applicationID, subject, action).Scan(&perm.ID, &perm.ApplicationID, &perm.Code, &perm.Subject, &perm.Action, &perm.Conditions, &perm.Description, &perm.Active, &perm.CreatedAt, &perm.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("permission não encontrada")
+		}
+		return nil, err
+	}
+	return perm, nil
+}
+
+// UpsertPermission cria ou atualiza uma permission por id (o chamador resolve
+// o id via GetPermissionByCode/GetPermissionBySubjectAction). Também faz
+// backfill do code em rows antigas sem ele.
 func (r *postgresAuthRepository) UpsertPermission(ctx context.Context, permission *entity.Permission) error {
 	query := `
 		INSERT INTO permissions (id, application_id, code, subject, action, conditions, description, active, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		ON CONFLICT (application_id, code) DO UPDATE SET
+		ON CONFLICT (id) DO UPDATE SET
+			code = EXCLUDED.code,
 			subject = EXCLUDED.subject,
 			action = EXCLUDED.action,
 			conditions = EXCLUDED.conditions,
