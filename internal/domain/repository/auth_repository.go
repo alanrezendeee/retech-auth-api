@@ -25,6 +25,10 @@ type AuthRepository interface {
 	// GetUserRoles retorna todas as roles de um usuário em uma aplicação
 	GetUserRoles(ctx context.Context, userID, applicationID uuid.UUID) ([]*entity.Role, error)
 
+	// GetPermissionBySubjectAction busca uma permission por subject+action —
+	// fallback do sync para rows criadas fora do manifesto (ex.: SQL manual, sem code)
+	GetPermissionBySubjectAction(ctx context.Context, applicationID uuid.UUID, subject, action string) (*entity.Permission, error)
+
 	// CreateUserApplication cria um vínculo entre usuário e aplicação
 	CreateUserApplication(ctx context.Context, userApp *entity.UserApplication) error
 

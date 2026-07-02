@@ -652,6 +652,11 @@ func (uc *ManagementUseCase) SyncManifest(ctx context.Context, req dto.SyncManif
 
 		existingPerm, err := uc.authRepo.GetPermissionByCode(ctx, app.ID, permDTO.Code)
 		if err != nil {
+			// Fallback: rows criadas fora do sync (SQL manual) não têm code —
+			// busca pela chave natural para não violar (application_id, subject, action).
+			existingPerm, err = uc.authRepo.GetPermissionBySubjectAction(ctx, app.ID, subject, action)
+		}
+		if err != nil {
 			perm.ID = uuid.New()
 			perm.CreatedAt = time.Now()
 			perm.UpdatedAt = time.Now()
