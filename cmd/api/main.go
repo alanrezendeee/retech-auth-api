@@ -137,6 +137,8 @@ func main() {
 	listUsersUseCase := usecase.NewListUsersUseCase(userRepo, authRepo)
 	userManagementUseCase := usecase.NewUserManagementUseCase(userRepo, authRepo, appRepo, hashService)
 	managementUseCase := usecase.NewManagementUseCase(appRepo, authRepo, userRepo, hashService)
+	passwordResetRepo := repository.NewPostgresPasswordResetRepository(db)
+	passwordResetUseCase := usecase.NewPasswordResetUseCase(userRepo, passwordResetRepo, hashService)
 
 	authHandler := handler.NewAuthHandler(
 		authenticateUseCase,
@@ -147,6 +149,7 @@ func main() {
 	)
 	userHandler := handler.NewUserHandler(listUsersUseCase, userManagementUseCase)
 	managementHandler := handler.NewManagementHandler(managementUseCase)
+	passwordResetHandler := handler.NewPasswordResetHandler(passwordResetUseCase)
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	syncMiddleware := middleware.NewSyncMiddleware(jwtService, cfg.BootstrapSecret)
@@ -181,6 +184,11 @@ func main() {
 				protected.POST("/applications", managementHandler.CreateApplication)
 				// /sync aceita JWT (uso normal) OU API Key (bootstrap)
 				r.POST("/applications/sync", syncMiddleware.AuthenticateSync(), managementHandler.SyncManifest)
+
+				// Fluxo "esqueci a senha" — consumido por serviços internos via HMAC
+				// (quem envia o e-mail é o serviço do produto, ex.: retech-meufin-api)
+				r.POST("/password-reset/request", syncMiddleware.AuthenticateSync(), passwordResetHandler.Request)
+				r.POST("/password-reset/confirm", syncMiddleware.AuthenticateSync(), passwordResetHandler.Confirm)
 				protected.GET("/applications/:id", managementHandler.GetApplication)
 				protected.PUT("/applications/:id", managementHandler.UpdateApplication)
 				protected.DELETE("/applications/:id", managementHandler.DeleteApplication)
